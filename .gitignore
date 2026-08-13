@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project generated files
+*.db
+*.db-wal
+*.db-shm
+data/recipes/
+static/epub_images/
+static/cookster-logo.jpg
+
+# Original book files (large binaries, not committed)
+books/
+
+# Backup files
+*.new

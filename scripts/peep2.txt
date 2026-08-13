@@ -1,0 +1,252 @@
+
+======================================================================
+Mallmann, Francis_ Kaminsky, Peter - Seven Fires_ Grilling the Argentine Way (2009, Artisan) - libgen.li.epub
+======================================================================
+
+--- text/part0007_split_002.html ---
+Seven Fires: Grilling The Argentine Way Zucchini with Basil, Mint, and Parmesan Very fresh tasting and light. If you have small leaves of basil and mint, use them whole; otherwise, roughly tear them. This recipe can be doubled, tripled, or further multiplied. And it can be made several hours ahead. | Serves 4 1 good-sized zucchini, trimmed 1 lemon 2 tablespoons chipped or shaved Parmesan Coarse salt and freshly ground black pepper 2 tablespoons extra virgin olive oil 10 small fresh basil leaves 10 small fresh mint leaves Sliced baguette, toasted if desired With a mandoline or a sharp knife, slice the zucchini on an angle into long ovals about ⅙ inch thick. Place in a bowl. Grate the zest of half the lemon over the zucchini, and squeeze all the juice over it. Add the Parmesan to the zucchini. Season carefully with salt and pepper. Toss with the olive oil, basil, and mint. (The zucchini can be refrigerated for up to 3 hours; if you do refrigerate it, don’t add the basil and mint until just before you offer it.) Serve with slices of baguette.
+
+[HTML SAMPLE]
+<?xml version='1.0' encoding='utf-8'?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Seven Fires: Grilling The Argentine Way</title>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<link href="../stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+<body class="calibre">
+<p class="RH" id="_idParaDest-10"><a class="calibre4" id="_idTOCAnchor-16"></a>Zucchini with Basil, Mint, and Parmesan</p>
+<p class="RHN">Very fresh tasting and light. If you have small leaves of basil and mint, use them whole; otherwise, roughly tear them. This recipe can be doubled, tripled, or further multiplied. And it can be made several hours ahead.<span class="red"> | Serves 4</span></p>
+<p class="RI-M"><strong class="calibre7">1 good-sized zucchini, trimmed</strong></p>
+<p class="RI-M"><strong class="calibre7">1 lemon</strong></p>
+<p class="RI-M"><strong class="calibre7">2 tablespoons chipped or shaved Parmesan</strong></p>
+<p class="RI-M"><strong class="calibre7">Coarse salt and freshly ground black pepper</strong></p>
+<p class="RI-M"><strong class="calibre7">2 tablespoons extra virgin olive oil</strong></p>
+<p class="RI-M"><strong class="calibre7">10 small fresh basil leaves</strong></p>
+<p class="RI-M"><strong class="calibre7">10 small fresh mint leaves</strong></p>
+<p class="RI-L"><strong class="calibre7">Sliced baguette, toasted if desired</strong></p>
+<p class="TX">With a mandoline or a sharp knife, slice the zucchini on an angle into long ovals about ⅙ inch thick. Place in a bowl.</p>
+<p class="TX1">Grate the zest of half the lemon over the zucchini, and squeeze all the juice over it.</p>
+<p class="TX1">Add the Parmesan to the zucchini. Season carefully with salt and pepper. Toss with the olive oil, basil, and mint. (The zucchini can be refrigerated for up to 3 hours; if you do refrigerate it, don’t add the basil and mint until just before you offer it.) Serve with slices of baguette.</p>
+<div class="calibre3" id="calibre_pb_4"></div>
+</body></html>
+
+
+======================================================================
+Medrich, Alice - Cocolat_ extraordinary chocolate desserts (2017, Dover Publications) - libgen.li.epub
+======================================================================
+
+--- OEBPS/ch09.html ---
+Cocolat: Extraordinary Chocolate Desserts Chocolate Tortes A dessert for lovers of dark, bittersweet chocolate … a dessert for the purist … a cake so chocolatey that icing or glaze is unnecessary, except to add a sleek finishing touch … a cake so rich in texture and flavor that the smallest piece is pure satisfaction … - - - - - - M y love affair with chocolate desserts started with the first bite of a simple, intensely chocolate, one-layer torte homemade in a tiny Paris apartment. The oven didn’t even have a thermostat. - - - It was a dessert for lovers of dark, bittersweet chocolate—a dessert for the purist, a cake so chocolatey that icing or glaze were unnecessary, except to add a sleek finishing touch. The smallest piece was pure satisfaction. I couldn’t believe that something so simple could be so divine. - - - I started my business inspired by this one sublime recipe. At Cocolat we literally celebrate the chocolate torte in all its variations. - - - I smile to think that these exquisite recipes originally came from the home kitchens, cookbooks, and notebooks of generations of European grandmothers, aunts, mothers, and daughters. They were not the recipes of professional pastry chefs. They are as down-to-earth and soul-satisfying as home cooking and, indeed, may be presented with the utmost simplicity—a dusting of confectioners’ sugar or a dollop of cream. At is my special delight to present them, sleek and glamorous, to grand company. - - - The words “torte” or “torta” simply mean cake, in several European languages. Americans use the term “torte” for the specific type of European cake that is made with ground nuts or crumbs and with little or no flour. These are rich desserts, usually denser, more flavorful and somehow more exotic than the Anglo-American layer cake, pound cake or butter cake. This is especially true when chocolate plays the starring role! This first chapter deals exclusively with the rich, single-layer chocolate beauties that have become a Co
+
+[HTML SAMPLE]
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cocolat: Extraordinary Chocolate Desserts</title>
+<link href="css/epub.css" rel="stylesheet" type="text/css"/>
+<meta content="urn:uuid:ccb77262-fad1-48a5-ab8e-26e598858132" name="Adept.expected.resource"/>
+</head>
+<body>
+<div class="box">
+<h1 class="h1p"><a id="page_31"></a>Chocolate Tortes</h1>
+<p class="bodytext-centers">A dessert for lovers of dark, bittersweet chocolate … a dessert for the purist … a cake so chocolatey that icing or glaze is unnecessary, except to add a sleek finishing touch … a cake so rich in texture and flavor that the smallest piece is pure satisfaction …</p>
+<p class="bodytext-centers">- - - - - -</p>
+</div>
+<p class="image"><a id="page_30"></a><img alt="images" class="disp" src="images/img_10.jpg"/></p>
+<p class="bodytext1"><a id="page_32"></a><span class="dropcaps">M</span><span class="padding"></span>y love affair with chocolate desserts started with the first bite of a simple, intensely chocolate, one-layer torte homemade in a tiny Paris apartment. The oven didn’t even have a thermostat. - - -</p>
+<p class="bodytext">It was a dessert for lovers of dark, bittersweet chocolate—a dessert for the purist, a cake so chocolatey that icing or glaze were unnecessary, except to add a sleek finishing touch. The smallest piece was pure satisfaction. I couldn’t believe that something so simple could be so divine. - - -</p>
+<p class="bodytext">I started my business inspired by this one sublime recipe. At Cocolat we literally celebrate the chocolate torte in all its variations. - - -</p>
+<p class="bodytext">I smile to think that these exquisite recipes originally came from the home kitchens, cookbooks, and notebooks of generations of European grandmothers, aunts, mothers, and daughters. They were not the recipes of professional pastry chefs. They are as down-to-earth and soul-satisfying as home cooking and, indeed, may be presented with the utmost simplicity—a dusting of confectioners’ sugar or a dollop of cream. At is my special delight to present them, sleek and glamorous, to grand company. - - -</p>
+<p class="bodytext">The words “torte” or “torta” simply mean cake, in several European languages. Americans use the term “torte” for the specific type of European cake that is made with ground nuts or crumbs and with little or no flour. These are rich desserts, usually denser, more flavorful and somehow more exotic than the Anglo-American layer cake, pound cake or butter cake. This is especially true when chocolate plays the starring role! This first chapter deals exclusively with the rich, single-layer chocolate beauties that have become a Cocolat signature. - - -</p>
+<p class="bodytext"><a id="page_33"></a>When Cocolat opened in 1976, customers were accustomed to tall, sweet airy cakes bedecked with swirls of sticky frosting made primarily of shortening and confectioners’ sugar. When they saw our low, svelte chocolate tortes, some said, “How beautiful, how elegant, out what are they?” But people were soon hooked on these rich, understated-looking desserts—all chocolate with a lovely nuance of brandy and almonds, fragrant toasted hazelnuts, or walnuts. To a large handful of relatively well-traveled locals in 1970, here was Vienna remembered, or that neighborhood restaurant in Paris. - - -</p>
+<p class="bodytext">The recipes that follow are treasures. They are quick and easy to make, keep well, and freeze beautifully. Subtle variations result in different tortes—from light, creamy textures, to coarser, nuttier versions, to tortes so chocolate rich that they are more confection than cake! One great secret of these desserts is that most are slightly “underbaked”, resulting in an indescribably rich, moist texture. - - -</p>
+<p class="bodytext">If possible, I serve a chocolate torte at room temperature rather than cold. The texture is softer and smoother, the flavors are more luscious and forthcoming, and the fragrance of the chocolate is more int
+
+======================================================================
+Nigel Slater - The Kitchen Diaries (2006, Fourth Estate Ltd) - libgen.li.epub
+======================================================================
+
+--- OEBPS/august.html ---
+The Kitchen Diaries I august Bream with lemon and anchovy potatoes Baked aubergine with sheep’s cheese and mint A salad of red mullet with lime and ginger Roast tomato soup with basil and olive oil toasts Grilled monkfish with rosemary, served with garlic mayo Orange yoghurt water ice Lamb chops with oregano and tsatziki Cannellini beans with coppa, spinach and mustard Grilled chicken with lemon and couscous Grilled zucchini with basil and lemon Mozzarella with grilled fennel Grilled chicken with garlic and lemon butter Seared beef with mint and mustard dressing Garlic prawns Bread and tomato salad August 1 Cool Canteloupe, roast fish and ripe peaches on a blazing summer’s day There has been a Canteloupe melon in the larder for five days now. Each morning I give it a turn and a sniff, rolling it over and over in my hands. This morning it is as ripe as anyone could wish for. Heavy with juice, it has a dent in one side and won’t last another day. There are four of us for lunch, so I pick up some prosciutto to go with the melon. The two ingredients remain my first choice with which to start a summer meal. Yesterday Steve Hatt had four beautiful bream on his slab, which I got the boys to clean for me, asking for the fish to be left on the bone so I could bake them whole. Then I went in search of a net bag of salad potatoes, which against all culinary laws I intend to bake with the fish. Such tight-textured, waxy potatoes slide to a delightful fudginess in the oven. The garden is currently full of sweet peas, a tangle of magenta, lilac, white and purple-edged blooms. They look as pretty as a picture in a cream-coloured jug. I would never, ever arrange flowers for the table – in fact I sometimes think there should be a law against it – but I do occasionally plonk a bunch unceremoniously in a vase if someone is coming. It is not just a ‘guy thing’, it is a question of aesthetics. There is nothing pleasing to my eye about a mixture of flowers contorted and contrived into a 
+
+[HTML SAMPLE]
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<title>The Kitchen Diaries I</title>
+<link href="styles.css" rel="stylesheet" type="text/css"/>
+<link href="page-template.xpgt" rel="stylesheet" type="application/vnd.adobe-page-template+xml"/>
+<meta content="urn:uuid:30d0f517-90f8-43d6-be09-f67a22c208d4" name="Adept.expected.resource"/>
+</head>
+<body>
+<div class="main">
+<div class="full-image"><img alt="image" class="imagefix" src="images/p240.jpg"/></div>
+<h1 class="chtitle"><a id="chap9"><span class="grey">august</span></a></h1>
+<p class="list_of_recipes"><a href="august.html#subhead2-115"><span class="grey">Bream with lemon and anchovy potatoes</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-116"><span class="grey">Baked aubergine with sheep’s cheese and mint</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-117"><span class="grey">A salad of red mullet with lime and ginger</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-118"><span class="grey">Roast tomato soup with basil and olive oil toasts</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-119"><span class="grey">Grilled monkfish with rosemary, served with garlic mayo</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-120"><span class="grey">Orange yoghurt water ice</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-121"><span class="grey">Lamb chops with oregano and tsatziki</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-122"><span class="grey">Cannellini beans with coppa, spinach and mustard</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-123"><span class="grey">Grilled chicken with lemon and couscous</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-124"><span class="grey">Grilled zucchini with basil and lemon</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-125"><span class="grey">Mozzarella with grilled fennel</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-126"><span class="grey">Grilled chicken with garlic and lemon butter</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-127"><span class="grey">Seared beef with mint and mustard dressing</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-128"><span class="grey">Garlic prawns</span></a></p>
+<p class="list_of_recipes"><a href="august.html#subhead2-129"><span class="grey">Bread and tomato salad</span></a></p>
+<div class="full-image1"><img alt="image" class="imagefix" src="images/p243.jpg"/></div>
+<h2 class="subhead1" id="subhead1-139">August 1<br/>Cool<br/>Canteloupe,<br/>roast fish<br/>and ripe<br/>peaches on<br/>a blazing<br/>summer’s<br/>day</h2>
+<p class="noneleft">There has been a Canteloupe melon in the larder for five days now. Each morning I give it a turn and a sniff, rolling it over and over in my hands. This morning it is as ripe as anyone could wish for. Heavy with juice, it has a dent in one side and won’t last another day. There are four of us for lunch, so I pick up some prosciutto to go with the melon. The two ingredients remain my first choice with which to start a summer meal.</p>
+<p class="normal">Yesterday Steve Hatt had four beautiful bream on his slab, which I got the boys to clean for me, asking for the fish to be left on the bone so I could bake them whole. Then I went in search of a net bag of salad potatoes, which against all culinary laws I intend to bake with the fish. Such tight-textured, waxy potatoes slide to a delightful fudginess in the oven.</p>
+<p class="normal">The garden is currently full of sweet peas, a tangle of magenta, lilac, white and purple-edged blooms. They look as pretty as a picture in a cream-coloured jug. I would never, ever arrange flowers for the table – in fact I sometimes think there should be a law agains
+
+======================================================================
+Nigella Lawson - How To Eat_ The Pleasures and Principles of Good Food (2014, Vintage Digital) - libgen.li.epub
+======================================================================
+
+--- OPS/xhtml/ch04.xhtml ---
+How to Eat Recipe list LINGUINE WITH CLAMS COD WITH CLAMS MOULES MARINIÈRE SCALLOPS AND BACON PRAWNS WITH GARLIC AND CHILLI FRIED PRAWN CAKES PETER RABBIT IN MR McGREGOR’S SALAD LIVER WITH SWEET ONIONS MARINATED, FLATTENED QUAIL STEAK AU POIVRE HOME CARPACCIO OF BEEF CREAM OF CHICKEN SOUP BUTTERNUT AND PASTA SOUP SUNDAY NIGHT CHICKEN NOODLE SPAGHETTI CARBONARA PASTA WITH ANCHOVY SAUCE KALE WITH CHORIZO AND POACHED EGG INDULGENT DINNERS YOUNG GROUSE WITH MASCARPONE AND THYME BLINI ZABAIONE COMFORT FOOD BAKED SEMOLINA APPLE AND WALNUT CRUMBLE RISOTTO-INSPIRED RICE PUDDING one & two DON’T KNOCK MASTURBATION ,’ Woody Allen once said: ‘it’s sex with someone I love.’ Most people can’t help finding something embarrassingly onanis-tic about taking pleasure in eating alone. Even those who claim to love food think that cooking just for yourself is either extravagantly self-indulgent or a plain waste of time and effort. But you don’t have to belong to the drearily narcissistic learn-to-love-yourself school of thought to grasp that it might be a good thing to consider yourself worth cooking for. And the sort of food you cook for yourself will be different from the food you might lay on for tablefuls of people: it will be better. I don’t say that for effect. You’ll feel less nervous about cooking it and that translates to the food itself. It’ll be simpler, more straightforward, the sort of food you want to eat. I don’t deny that food, its preparation as much as its consumption, is about sharing, about connectedness. But that’s not all that it’s about. There seems to me to be something robustly affirmative about taking trouble to feed yourself; enjoying life on purpose, rather than by default. Even in culinary terms alone there are grounds for satisfaction. Real cooking, if it is to have any authenticity, any integrity, has to be part of how you are, a function of your personality, your temperament. There’s too much culinary ventriloquism about as it is: cooking for yourself is a
+
+[HTML SAMPLE]
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+<meta content="text/html; charset=UTF-8" http-equiv="Default-Style"/>
+<title>How to Eat</title>
+<link href="../styles/styles.css" rel="stylesheet" type="text/css"/>
+<link href="../styles/page-template.xpgt" rel="stylesheet" type="application/vnd.adobe-page-template+xml"/>
+<meta content="urn:uuid:b818693c-381f-4664-96ca-c2b84faf949d" name="Adept.expected.resource"/>
+</head>
+<body>
+<div><a id="pg132"></a></div>
+<div class="full-page-afbrk"><img alt="image" class="full-height" src="../images/p132.jpg"/></div>
+<h2 class="rep-head">Recipe list</h2>
+<p class="chap-list"><a href="ch04.xhtml#list95"><span class="ch04-color">LINGUINE WITH CLAMS</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list96"><span class="ch04-color">COD WITH CLAMS</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list97"><span class="ch04-color">MOULES MARINIÈRE</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list98"><span class="ch04-color">SCALLOPS AND BACON</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list99"><span class="ch04-color">PRAWNS WITH GARLIC AND CHILLI</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list100"><span class="ch04-color">FRIED PRAWN CAKES</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list101"><span class="ch04-color">PETER RABBIT IN MR McGREGOR’S SALAD</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list102"><span class="ch04-color">LIVER WITH SWEET ONIONS</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list103"><span class="ch04-color">MARINATED, FLATTENED QUAIL</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list104"><span class="ch04-color">STEAK AU POIVRE</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list105"><span class="ch04-color">HOME CARPACCIO OF BEEF</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list106"><span class="ch04-color">CREAM OF CHICKEN SOUP</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list107"><span class="ch04-color">BUTTERNUT AND PASTA SOUP</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list108"><span class="ch04-color">SUNDAY NIGHT CHICKEN NOODLE</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list109"><span class="ch04-color">SPAGHETTI CARBONARA</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list110"><span class="ch04-color">PASTA WITH ANCHOVY SAUCE</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list111"><span class="ch04-color">KALE WITH CHORIZO AND POACHED EGG</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list112"><span class="ch04-color">INDULGENT DINNERS</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list113"><span class="ch04-color">YOUNG GROUSE WITH MASCARPONE AND THYME</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list114"><span class="ch04-color">BLINI</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list115"><span class="ch04-color">ZABAIONE</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list116"><span class="ch04-color">COMFORT FOOD</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list117"><span class="ch04-color">BAKED SEMOLINA</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list118"><span class="ch04-color">APPLE AND WALNUT CRUMBLE</span></a></p>
+<p class="chap-list"><a href="ch04.xhtml#list119"><span class="ch04-color">RISOTTO-INSPIRED RICE PUDDING</span></a></p>
+<h2 class="chapter-heada2"><a id="pg133"></a><a id="pg134"></a><span class="ch04-color">one &amp; two</span></h2>
+<p class="flush-left"><span class="small"><span class="ch04-color">DON’T KNOCK MASTURBATION</span></span>,’ Woody Allen once said: ‘it’s sex with someone I love.’ Most people can’t help finding something embarrassingly onanis-tic about taking pleasure in eating alone. Even those who claim to love food think that cooking just for yourself is either extravagantly self-indulgent or a plain waste of time and effort. But you don’t have to belong
+
+--- OPS/xhtml/ch05.xhtml ---
+How to Eat Recipe list POINTS TO REMEMBER REMINDERS OF AND IDEAS FOR HASTY IMPROVISATIONS SALAD SOUPS PASTA FLAVOURED AND INFUSED OILS CANNED PULSES ESCALOPES CHICKEN DUCK PUDDINGS A BRIEF NOTE ON EQUIPMENT QUICK AFTER-WORK SUPPERS FOR FOUR RED MULLET WITH GARLIC AND ROSEMARY GOOEY CHOCOLATE PUDDINGS BEEF STROGANOFF ROAST SUGAR-SPRINKLED PEACHES SQUID WITH CHILLI AND CLAMS SOLE WITH CHANTERELLES MASCARPONE, RUM AND LIME CREAM LAMB WITH GARLICKY TAHINA PASSION FRUIT FOOL ROAST COD WITH UPMARKET MUSHY PEAS DUCK WITH ORANGE SALSA NOODLES WITH SPRING ONIONS, SHITAKE MUSHROOMS AND MANGETOUTS MACKEREL IN CIDER CHAMBÉRY TROUT SALSA VERDE PUDDING ESCALOPES OF SALMON WITH WARM BALSAMIC VINAIGRETTE CINNAMON-HOT RACK OF LAMB CHERRIED AND CHICK PEA’D COUSCOUS BAKED FIGS CHICKEN WITH SPRING ONION, CHILLI AND GREEK YOGHURT SEVEN-MINUTE STEAMED CHOCOLATE PUDDING STEAK MIRABEAU fast food FOR THE PAST few years I have written an annual round-up of cookery books and, putting aside fashions and fads, it is the subject of fast food which has recently begun to dominate. The reasons are understandable enough: we seem to have less time for cooking as we have more interest in food. Women have been traditionally the producers and providers of food in the home, but now that we go out to work there’s no one to spend all afternoon making tonight’s supper. But the disinclination to spend hour upon hour in the kitchen every night is not sex-specific. No one would want, after a long day in the office, to come back and start on some elaborate culinary masterpiece. Cooking can be relaxing (although it’s interesting that it’s men rather than women who tend more often to cite its therapeutic properties), but not if you are already exhausted. And since the working day seems to get ever longer, why would you want to be cooking a meal which isn’t going to be ready for 2½ hours? What we all want is to eat something good and simple and soon. POINTS TO REMEMBER • Don’t take short cuts with dishes that ough
+
+[HTML SAMPLE]
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+<meta content="text/html; charset=UTF-8" http-equiv="Default-Style"/>
+<title>How to Eat</title>
+<link href="../styles/styles.css" rel="stylesheet" type="text/css"/>
+<link href="../styles/page-template.xpgt" rel="stylesheet" type="application/vnd.adobe-page-template+xml"/>
+<meta content="urn:uuid:b818693c-381f-4664-96ca-c2b84faf949d" name="Adept.expected.resource"/>
+</head>
+<body>
+<div><a id="pg176"></a><a id="pg177"></a></div>
+<div class="full-page-afbrk"><img alt="image" class="full-height" src="../images/p176.jpg"/></div>
+<h2 class="rep-head">Recipe list</h2>
+<p class="chap-list"><a href="ch05.xhtml#list120"><span class="ch05-color">POINTS TO REMEMBER</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list121"><span class="ch05-color">REMINDERS OF AND IDEAS FOR HASTY IMPROVISATIONS</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list122"><span class="ch05-color">SALAD</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list123"><span class="ch05-color">SOUPS</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list124"><span class="ch05-color">PASTA</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list125"><span class="ch05-color">FLAVOURED AND INFUSED OILS</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list126"><span class="ch05-color">CANNED PULSES</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list127"><span class="ch05-color">ESCALOPES</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list128"><span class="ch05-color">CHICKEN</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list129"><span class="ch05-color">DUCK</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list130"><span class="ch05-color">PUDDINGS</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list131"><span class="ch05-color">A BRIEF NOTE ON EQUIPMENT</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list132"><span class="ch05-color">QUICK AFTER-WORK SUPPERS FOR FOUR</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list133"><span class="ch05-color">RED MULLET WITH GARLIC AND ROSEMARY</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list134"><span class="ch05-color">GOOEY CHOCOLATE PUDDINGS</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list135"><span class="ch05-color">BEEF STROGANOFF</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list136"><span class="ch05-color">ROAST SUGAR-SPRINKLED PEACHES</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list137"><span class="ch05-color">SQUID WITH CHILLI AND CLAMS</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list138"><span class="ch05-color">SOLE WITH CHANTERELLES</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list139"><span class="ch05-color">MASCARPONE, RUM AND LIME CREAM</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list140"><span class="ch05-color">LAMB WITH GARLICKY TAHINA</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list141"><span class="ch05-color">PASSION FRUIT FOOL</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list142"><span class="ch05-color">ROAST COD WITH UPMARKET MUSHY PEAS</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list143"><span class="ch05-color">DUCK WITH ORANGE SALSA</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list144"><span class="ch05-color">NOODLES WITH SPRING ONIONS, SHITAKE MUSHROOMS AND MANGETOUTS</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list145"><span class="ch05-color">MACKEREL IN CIDER</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list146"><span class="ch05-color">CHAMBÉRY TROUT</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list147"><span class="ch05-color">SALSA VERDE</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list148"><span class="ch05-color">PUDDING</span></a></p>
+<p class="chap-list"><a href="ch05.xhtml#list149"><span class="ch05-color">ESCALOPES OF SALMON WITH WARM 
+
+======================================================================
+Nigella Lawson - How to be a domestic goddess.epub
+======================================================================
+
+--- OEBPS/Text/Acknowledgements.html ---
+How To Be A Domestic Goddess ACKNOWLEDGEMENTS There are many people who have helped, either with ingredients or equipment, in the course of this book, and to whom I owe thanks, most notably the Conran Shop, Ecko Bakeware, Graham & Greene, Kitchen Ideas, Marks & Spencer together with W. Brice and Son of Mockbeggar Farm, Michanicou Brothers, Mortimer & Bennett, Selfridges, Somerill & Bishop, Tiffany & Co., Vessel and Wedgwood. One wanders into the land of platitude in saying that no book is the product of only one person’s effort, but it’s true all the same. I am grateful to a number of people, Eugenie Boyd, Caz Hildebrand, Gail Rebuck, Alison Samuel, Petrina Tinslay and Ed Victor chief among them. I could not even broach the subject of my own, overwhelming gratitude without mentioning domestic goddesses Kate Mellor, who has made it possible for me to work, to write, indeed to live, and Hettie Potter, who came into my life at just the right time, and without whom this book could never have been written. She has cooked with me, taken notes for me, supported me and kept me sane.
+
+[HTML SAMPLE]
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg">
+<head>
+<title>How To Be A Domestic Goddess</title>
+<link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page-template.xpgt" rel="stylesheet" type="application/vnd.adobe-page-template+xml"/>
+<meta content="urn:uuid:9d022995-d171-4847-8b3d-7d3a7bb1277f" name="Adept.expected.resource"/>
+</head>
+<body>
+<h3 class="h3" id="heading_id_2"><a id="backmatter02"></a><a id="page_366"></a><strong>ACKNOWLEDGEMENTS</strong></h3>
+<p class="normal2">There are many people who have helped, either with ingredients or equipment, in the course of this book, and to whom I owe thanks, most notably the Conran Shop, Ecko Bakeware, Graham &amp; Greene, Kitchen Ideas, Marks &amp; Spencer together with W. Brice and Son of Mockbeggar Farm, Michanicou Brothers, Mortimer &amp; Bennett, Selfridges, Somerill &amp; Bishop, Tiffany &amp; Co., Vessel and Wedgwood.</p>
+<p class="bodytext">One wanders into the land of platitude in saying that no book is the product of only one person’s effort, but it’s true all the same. I am grateful to a number of people, Eugenie Boyd, Caz Hildebrand, Gail Rebuck, Alison Samuel, Petrina Tinslay and Ed Victor chief among them.</p>
+<p class="bodytext">I could not even broach the subject of my own, overwhelming gratitude without mentioning domestic goddesses Kate Mellor, who has made it possible for me to work, to write, indeed to live, and Hettie Potter, who came into my life at just the right time, and without whom this book could never have been written. She has cooked with me, taken notes for me, supported me and kept me sane.</p>
+</body>
+</html>
+
+--- OEBPS/Text/Chapter01.html ---
+How To Be A Domestic Goddess CAKES Cake baking has to be, however innocently, one of the great culinary scams: it implies effort, it implies domestic prowess; but believe me, it’s easy. We’ve become so convinced that simple food comes out of simple cooking that we’re happy to cook elaborate Tuscan suppers – which in reality demand much more than we could ever believe possible – but then baulk at baking a cake, assuming that we don’t have the time for all that, that we live a life that doesn’t encompass those arcane culinary arts. If that’s how you think, then you’re wrong. You know how you make a cake? You mix a few basic ingredients together, stick the mixture in a tin and bake it. And when I say mix, I don’t mean mix it yourself, not if you don’t want to: I mean process or beat with an electric mixer. How hard can that be? Too much reassurance can, I know, be troubling in itself. If it’s so easy to bake a cake, why is it that you can’t? Be honest: I imagine the answer is that you don’t often try, or haven’t for years. Not all cakes come out perfectly or even the same each time, and not all cakes are equally easy to bake, but if you follow any one of the recipes below, you can be sure it will work. Of course there are always variants in cooking, some more controllable than others, but baking is somewhat different: it’s chemistry first, poetry second. That’s partly why I came to it late. When you’re making a stew, well, you can go your own way, follow instinct, taste, convenience; you couldn’t make a cake like this: a cake demands mathematical respect. Some rules extend beyond the confines of the individual texts. You must remember three basic things: the first is that all ingredients should be at room temperature when you start; the second is that the oven should be at the required temperature when you put in the filled tin; finally, that tin should be of the dimensions specified. (If I’m honest, you can get away with some deviation here, but not too much – and any
+
+[HTML SAMPLE]
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg">
+<head>
+<title>How To Be A Domestic Goddess</title>
+<link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page-template.xpgt" rel="stylesheet" type="application/vnd.adobe-page-template+xml"/>
+<meta content="urn:uuid:9d022995-d171-4847-8b3d-7d3a7bb1277f" name="Adept.expected.resource"/>
+</head>
+<body>
+<h2 class="h2brose" id="heading_id_2"><a id="page_2"><a id="page_x"></a><a id="chapter01"></a></a>CAKES</h2>
+<p class="normalc">Cake baking has to be, however innocently, one of the great culinary scams: it implies effort, it implies domestic prowess; but believe me, it’s easy. We’ve become so convinced that simple food comes out of simple cooking that we’re happy to cook elaborate Tuscan suppers – which in reality demand much more than we could ever believe possible – but then baulk at baking a cake, assuming that we don’t have the time for all that, that we live a life that doesn’t encompass those arcane culinary arts.</p>
+<p class="bodytextb">If that’s how you think, then you’re wrong. You know how you make a cake? You mix a few basic ingredients together, stick the mixture in a tin and bake it. And when I say mix, I don’t mean mix it yourself, not if you don’t want to: I mean process or beat with an electric mixer. How hard can that be?</p>
+<p class="bodytextb">Too much reassurance can, I know, be troubling in itself. If it’s so easy to bake a cake, why is it that you can’t? Be honest: I imagine the answer is that you don’t often try, or haven’t for years. Not all cakes come out perfectly or even the same each time, and not all cakes are equally easy to bake, but if you follow any one of the recipes below, you can be sure it will work. Of course there are always variants in cooking, some more controllable than others, but baking is somewhat different: it’s chemistry first, poetry second. That’s partly why I came to it late. When you’re making a stew, well, you can go your own way, follow instinct, taste, convenience; you couldn’t make a cake like this: a cake demands mathematical respect.</p>
+<p class="bodytextb">Some rules extend beyond the confines of the individual texts. You must remember three basic things: the first is that all ingredients should be <a id="page_3"></a>at room temperature when you start; the second is that the oven should be at the required temperature when you put in the filled tin; finally, that tin should be of the dimensions specified. (If I’m honest, you can get away with some deviation here, but not too much – and anyway, why make things harder for yourself?)</p>
+<p class="bodytextb">I’ve said it’s easy to make a cake, but this doesn’t convey the depth of achievement you feel on making one. There’s something about seeing such elemental change, that flour, butter, eggs, sugar could become this – and more, that you’ve brought it about – that’s so satisfying. Such simple pleasures are not to be underestimated.</p>
+<div class="pagebreak"></div>
+<div class="toca">
+<p class="toc"><a href="../Text/Chapter01a.html"><span class="toccolor">Loaf and Plain Cakes</span></a></p>
+<p class="toc1"><a href="../Text/Chapter01a.html#chapter01a"><span class="toccolor">My Mother-in-Law’s Madeira Cake</span></a></p>
+<p class="toc1"><a href="../Text/Chapter01b.html#chapter01b"><span class="toccolor">Easy Almond Cake</span></a></p>
+<p class="toc1"><a href="../Text/Chapter01c.html#chapter01c"><span class="toccolor">Rosemary Loaf Cake</span></a></p>
+<p class="toc1"><a href="../Text/Chapter01d.html#chapter01d"><span class="toccolor">Gateau Breton</span></a></p>
+<p class="toc1"><a href="../Text/Chapter01e.html#chapter01e"><span class="toccolor">Damp Lemon and Almond Cake</span></a></p>
+<p class="toc1"><a href="../Text/Chapter01f.html#chapter01f"><span class="toccolor">Lemon-Syrup Loaf Cake</span></a></p>
+<p class="toc"><a href="../Text/Chapter01g.html"><span class="toccolor">Filled and Iced Cakes</span></a>

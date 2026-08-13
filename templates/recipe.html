@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{ recipe.title }} | Cookster</title>
+    <link rel="icon" type="image/jpeg" href="/static/cookster-logo.jpg">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container recipe-container">
+      <a id="back-link" class="back-link" href="/">← Back to search</a>
+
+      {% if error %}
+        <div class="panel">
+          <h2>Error</h2>
+          <p>{{ error }}</p>
+        </div>
+      {% else %}
+        <div class="recipe-hero">
+          <div class="recipe-hero-media">
+            {% if image_url %}
+              <img src="{{ image_url }}" alt="{{ recipe.title }}">
+            {% else %}
+              <div class="no-image">
+                <img src="/static/cookster-logo.jpg" alt="" class="watermark-logo">
+                <span>No image available</span>
+              </div>
+            {% endif %}
+          </div>
+          <div class="recipe-header">
+            <div class="recipe-meta">From <a href="/book?source={{ recipe.source|urlencode }}&db={{ request.query_params.get('db', 'cookster.db')|urlencode }}"><strong>{{ recipe.source }}</strong></a></div>
+            <h1>{{ recipe.title }}</h1>
+            <div id="recipe-rating-display" class="recipe-rating-display"></div>
+            {% if serves %}<div class="recipe-serves">🍽 {{ serves }}</div>{% endif %}
+            <div class="recipe-actions-row">
+              <button id="recipe-fav" class="fav-btn" data-id="{{ recipe.stable_id }}" aria-label="Add to favourites">♡</button>
+              <div class="list-dropdown">
+                <button id="list-toggle" class="btn secondary">📝 Add to list</button>
+                <div id="list-menu" class="list-menu">
+                  <div id="list-menu-items"></div>
+                  <div class="list-menu-divider"></div>
+                  <button id="new-list-from-recipe" class="list-menu-new">+ Create new list</button>
+                </div>
+              </div>
+              <button id="copy-link" class="btn secondary">🔗 Copy link</button>
+              <button id="export-markdown" class="btn secondary">📝 Export Markdown</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="recipe-grid">
+          <div class="panel ingredients-panel">
+            <div class="ingredients-header">
+              <h2>Ingredients</h2>
+              <div class="scaler">
+                <label for="scale-input">Scale</label>
+                <input type="number" id="scale-input" value="1" min="0.25" step="0.25" aria-label="Scale ingredients">
+                <span>×</span>
+              </div>
+            </div>
+            <ul class="ingredient-list" id="ingredient-list">
+              {% for line in recipe.ingredients.split('\n') %}
+                {% if line.strip() %}
+                  <li data-original="{{ line|escape }}">{{ line }}</li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div class="panel method-panel">
+            <h2>Method</h2>
+            <div class="steps {{ 'numbered' if steps_numbered else '' }}">
+              {% for line in recipe.steps.split('\n') %}
+                {% if line.strip() %}
+                  <div class="step">{{ line }}</div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <div class="actions">
+              <a class="btn" href="/download/{{ recipe.stable_id }}">⬇ Download Source File</a>
+              <button id="start-cooking" class="btn">👨‍🍳 Cooking mode</button>
+              <a class="btn secondary" href="/">← Back</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="recipe-extras">
+          <div class="panel extras-panel">
+            <h2>Plan &amp; remember</h2>
+            <div class="extras-row">
+              <button id="add-ingredients-shopping" class="btn">🛒 Add ingredients to shopping list</button>
+              <div class="meal-plan-inline">
+                <input type="date" id="recipe-plan-date" aria-label="Plan meal date">
+                <button id="add-to-meal-plan" class="btn secondary">📅 Plan</button>
+              </div>
+            </div>
+            <div class="extras-row">
+              <div class="rating-widget">
+                <span class="rating-label">Rating:</span>
+                <span id="recipe-rating" class="rating-stars"></span>
+              </div>
+              <button id="mark-cooked" class="btn secondary">👨‍🍳 I cooked this</button>
+            </div>
+            <div id="cooked-date" class="cooked-date"></div>
+            <div class="notes-widget">
+              <label for="recipe-notes">Notes</label>
+              <textarea id="recipe-notes" rows="4" placeholder="Your notes, substitutions, tweaks…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="related-recipes">
+          <section id="related-same-book" class="related-section" style="display:none">
+            <h2>More from this book</h2>
+            <div id="same-book-results" class="related-grid"></div>
+          </section>
+          <section id="related-similar" class="related-section" style="display:none">
+            <h2>Similar recipes</h2>
+            <div id="similar-results" class="related-grid"></div>
+          </section>
+        </div>
+      {% endif %}
+    </div>
+
+    <div id="cooking-overlay" class="cooking-overlay" aria-hidden="true">
+      <div class="cooking-header">
+        <div class="cooking-progress"><span id="cooking-step-num">1</span> / <span id="cooking-step-total">1</span></div>
+        <button id="cooking-close" class="icon-btn" aria-label="Close cooking mode">✕</button>
+      </div>
+      <div class="cooking-body">
+        <div id="cooking-step-text" class="cooking-step-text"></div>
+      </div>
+      <div class="cooking-footer">
+        <button id="cooking-prev" class="btn secondary">← Previous</button>
+        <button id="cooking-next" class="btn">Next →</button>
+      </div>
+    </div>
+    <script>
+      (() => {
+        const saved = localStorage.getItem('theme') || 'light';
+        if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      })();
+    </script>
+    <script src="/static/lists.js" defer></script>
+    <script src="/static/recipe.js" defer></script>
+  </body>
+</html>

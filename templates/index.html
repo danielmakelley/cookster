@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Cookster</title>
+    <link rel="icon" type="image/jpeg" href="/static/cookster-logo.jpg">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container">
+      <header class="top">
+        <a class="brand" href="/">
+          <img src="/static/cookster-logo.jpg" alt="Cookster" class="logo-img">
+          <div>
+            <h1>Cook<span>ster</span></h1>
+            <p>Search your cookbooks</p>
+          </div>
+        </a>
+        <div class="header-actions">
+          <button id="lists-toggle" class="theme-toggle" aria-label="My lists">📝 My Lists</button>
+          <button id="theme" class="theme-toggle" aria-label="Toggle theme">🌙 Dark</button>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="hero-badge">
+          <span class="hero-pill">Pirate Kitchen / Recipe Sharing</span>
+        </div>
+        <h2 class="hero-title">What are we cooking today?</h2>
+        <p class="hero-subtitle">Search <span id="book-count" class="hero-count">0</span> cookbooks for recipes, ingredients, or methods.</p>
+      </section>
+
+      <div class="search-row">
+        <div class="search-box">
+          <span class="search-icon" aria-hidden="true">🔎</span>
+          <input id="q" placeholder="Search recipes, ingredients, or methods…" autocomplete="off" autofocus />
+          <div id="suggestions" class="suggestions" aria-hidden="true"></div>
+          <button id="go">Search</button>
+        </div>
+      </div>
+
+      <div class="search-actions">
+        <div class="search-filters">
+          <select id="source" aria-label="Filter by book">
+            <option value="">All books</option>
+          </select>
+        </div>
+        <a href="/books" class="btn secondary browse-books-btn">📚 Browse books</a>
+        <button id="random" class="btn secondary surprise-btn">🎲 Surprise me</button>
+        <div class="stats-badge" title="Indexed cookbooks">
+          <span id="book-count-inline">0</span> books
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div id="count"></div>
+        <div id="busy" style="display:none"><span class="spinner"></span></div>
+      </div>
+
+      <div id="results">
+        <div class="empty">
+          <h2>Start typing to search</h2>
+          <p>Try an ingredient like "chicken", "chocolate", or "tofu".</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="prev" disabled>← Previous</button>
+        <span class="page-info"><span id="page">1</span> <span id="pages">of 1</span></span>
+        <button id="next" disabled>Next →</button>
+      </div>
+    </div>
+
+    <aside id="lists-panel" class="lists-panel" aria-hidden="true">
+      <div class="lists-panel-header">
+        <h2>My Cookster</h2>
+        <button id="lists-close" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+      <nav class="lists-tabs" role="tablist">
+        <button class="lists-tab active" data-tab="lists" role="tab" aria-selected="true">Lists</button>
+        <button class="lists-tab" data-tab="shopping" role="tab" aria-selected="false">Shopping</button>
+        <button class="lists-tab" data-tab="mealplan" role="tab" aria-selected="false">Meal Plan</button>
+        <button class="lists-tab" data-tab="backup" role="tab" aria-selected="false">Backup</button>
+      </nav>
+      <div class="lists-panel-body">
+        <div class="tab-panel active" data-tab="lists">
+          <section class="list-section">
+            <div class="list-row favorite-row" data-list-id="__favorites__">
+              <span class="list-name">❤️ Favourites</span>
+              <span class="list-count" id="fav-count">0</span>
+            </div>
+          </section>
+          <section class="list-section custom-lists">
+            <h3>Custom lists</h3>
+            <div id="custom-lists"></div>
+            <form id="new-list-form" class="new-list-form">
+              <input type="text" id="new-list-name" placeholder="New list name" autocomplete="off" />
+              <button type="submit">Add</button>
+            </form>
+          </section>
+        </div>
+
+        <div class="tab-panel" data-tab="shopping">
+          <section class="list-section">
+            <div class="shopping-header">
+              <h3>Shopping list</h3>
+              <button id="clear-bought" class="icon-btn" title="Remove bought items">Clear bought</button>
+            </div>
+            <div id="shopping-list"></div>
+            <div class="shopping-empty empty-lists">No items yet. Add ingredients from a recipe.</div>
+          </section>
+        </div>
+
+        <div class="tab-panel" data-tab="mealplan">
+          <section class="list-section">
+            <h3>Meal plan</h3>
+            <div id="meal-plan"></div>
+          </section>
+        </div>
+
+        <div class="tab-panel" data-tab="backup">
+          <section class="list-section">
+            <h3>Backup & restore</h3>
+            <p class="empty-lists">Export your favourites, lists, shopping list, meal plan, notes and ratings.</p>
+            <div class="backup-actions">
+              <button id="backup-export" class="btn">Export</button>
+              <button id="backup-import" class="btn secondary">Import</button>
+            </div>
+            <textarea id="backup-area" class="backup-area" placeholder="Paste exported JSON here…"></textarea>
+            <div id="backup-status" class="backup-status"></div>
+          </section>
+        </div>
+      </div>
+    </aside>
+    <div id="lists-backdrop" class="lists-backdrop"></div>
+
+    <script src="/static/lists.js" defer></script>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "Cookster",
+  "short_name": "Cookster",
+  "description": "Search and cook from your EPUB cookbook collection.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdfbf7",
+  "theme_color": "#c0392b",
+  "icons": [
+    {
+      "src": "/static/cookster-logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

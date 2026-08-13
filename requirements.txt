@@ -1,0 +1,13 @@
+ebooklib==0.20
+beautifulsoup4==4.15.0
+lxml==6.1.1
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+jinja2==3.1.6
+rank-bm25==0.2.2
+pytest==9.1.1
+httpx==0.28.1
+pytest-asyncio==1.4.0
+nltk==3.10.2
+pypdf==6.15.0
+mobi==0.4.1

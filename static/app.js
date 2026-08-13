@@ -1,0 +1,833 @@
+(() => {
+  const Lists = window.CooksterLists
+  const qInput = document.getElementById('q')
+  const sourceSelect = document.getElementById('source')
+  const busy = document.getElementById('busy')
+  const resultsEl = document.getElementById('results')
+  const countEl = document.getElementById('count')
+  const prevBtn = document.getElementById('prev')
+  const nextBtn = document.getElementById('next')
+  const pageEl = document.getElementById('page')
+  const pagesEl = document.getElementById('pages')
+  const themeBtn = document.getElementById('theme')
+  const listsToggle = document.getElementById('lists-toggle')
+  const listsPanel = document.getElementById('lists-panel')
+  const listsBackdrop = document.getElementById('lists-backdrop')
+  const listsClose = document.getElementById('lists-close')
+  const customListsEl = document.getElementById('custom-lists')
+  const favCountEl = document.getElementById('fav-count')
+  const newListForm = document.getElementById('new-list-form')
+  const newListName = document.getElementById('new-list-name')
+  const shoppingListEl = document.getElementById('shopping-list')
+  const shoppingEmptyEl = document.querySelector('.shopping-empty')
+  const clearBoughtBtn = document.getElementById('clear-bought')
+  const mealPlanEl = document.getElementById('meal-plan')
+  const backupExportBtn = document.getElementById('backup-export')
+  const backupImportBtn = document.getElementById('backup-import')
+  const backupArea = document.getElementById('backup-area')
+  const backupStatus = document.getElementById('backup-status')
+
+  const suggestionsEl = document.getElementById('suggestions')
+  const randomBtn = document.getElementById('random')
+  const bookCountEl = document.getElementById('book-count')
+  const bookCountInlineEl = document.getElementById('book-count-inline')
+
+  const params = new URLSearchParams(location.search)
+  let page = Math.max(1, parseInt(params.get('page'), 10) || 1)
+  let timer = null
+  let suggestionTimer = null
+  let lastQuery = (params.get('q') || '').trim()
+  let lastSource = (params.get('source') || '').trim()
+  let totalResults = 0
+  let currentView = 'search' // 'search' | 'list'
+  let activeListId = null
+  let activeSuggestion = -1
+  const limit = 10
+
+  if (lastQuery) qInput.value = lastQuery
+
+  function setBusy(v) { busy.style.display = v ? 'block' : 'none' }
+
+  function totalPages() {
+    return totalResults > 0 ? Math.max(1, Math.ceil(totalResults / limit)) : 1
+  }
+
+  function updatePager() {
+    const tp = totalPages()
+    pageEl.textContent = page
+    if (pagesEl) pagesEl.textContent = `of ${tp}`
+    prevBtn.disabled = page <= 1
+    nextBtn.disabled = page >= tp || totalResults === 0
+    prevBtn.style.display = currentView === 'search' ? '' : 'none'
+    nextBtn.style.display = currentView === 'search' ? '' : 'none'
+    pageEl.parentElement.style.display = currentView === 'search' ? '' : 'none'
+  }
+
+  function heartIcon(filled) {
+    return filled ? '♥' : '♡'
+  }
+
+  function renderRatingStars(rating, size = '1rem') {
+    if (!rating) return ''
+    const stars = [1, 2, 3, 4, 5].map(i => {
+      const active = i <= rating ? 'active' : ''
+      return `<span class="rating-star-display ${active}" style="font-size:${size}">★</span>`
+    }).join('')
+    return `<span class="rating-display" title="${rating} star${rating === 1 ? '' : 's'}">${stars}</span>`
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  }
+
+  function formatDateLabel(iso) {
+    const d = new Date(iso + 'T00:00:00')
+    const today = new Date()
+    const isToday = d.toDateString() === today.toDateString()
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+    const isTomorrow = d.toDateString() === tomorrow.toDateString()
+    const weekday = d.toLocaleDateString(undefined, { weekday: 'short' })
+    const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    if (isToday) return `Today · ${weekday} ${date}`
+    if (isTomorrow) return `Tomorrow · ${weekday} ${date}`
+    return `${weekday} ${date}`
+  }
+
+  function parseIngredients(text) {
+    if (!text) return []
+    return text.split('\n').map(l => l.trim()).filter(Boolean)
+  }
+
+  function renderCard(r) {
+    const sid = r.stable_id || String(r.id)
+    const isFav = Lists.isFavorite(sid)
+    const inLists = Lists.listsForRecipe(sid)
+    const imageHtml = r.image_url
+      ? `<div class="card-media"><img src="${r.image_url}" alt="" loading="lazy"></div>`
+      : `<div class="card-media"><div class="placeholder">📷 No image</div></div>`
+
+    const listChips = inLists.length
+      ? `<div class="card-lists">${inLists.map(l => `<span class="list-chip">${escapeHtml(l.name)}</span>`).join('')}</div>`
+      : ''
+
+    return `
+      <article class="card" data-recipe-id="${sid}">
+        ${imageHtml}
+        <div class="card-body">
+          <div class="card-title-row">
+            <h3><a href="/recipe/${sid}">${r.title}</a></h3>
+            <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${sid}" aria-label="${isFav ? 'Remove from favourites' : 'Add to favourites'}">
+              ${heartIcon(isFav)}
+            </button>
+          </div>
+          <div class="card-meta">
+            <a href="/book?source=${encodeURIComponent(r.source_raw || r.source)}">${r.source}</a>
+            ${r.serves ? `<span class="card-serves">🍽 ${escapeHtml(r.serves)}</span>` : ''}
+            <span class="score">${(r.score || 0).toFixed(2)}</span>
+          </div>
+          ${renderRatingStars(Lists.getRating(sid), '0.95rem')}
+          ${listChips}
+          <div class="card-snippet">
+            ${r.ingredients_snippet ? `<div><strong>Ingredients:</strong> ${r.ingredients_snippet}</div>` : ''}
+            ${r.steps_snippet ? `<div style="margin-top:6px"><strong>Method:</strong> ${r.steps_snippet}</div>` : ''}
+          </div>
+          <div class="card-actions-row">
+            <button class="card-action-btn add-shopping" data-id="${sid}" title="Add ingredients to shopping list">🛒 Shopping</button>
+            <div class="card-plan">
+              <input type="date" class="card-plan-date" data-id="${sid}" aria-label="Plan meal date">
+              <button class="card-action-btn plan-meal" data-id="${sid}" title="Add to meal plan">📅 Plan</button>
+            </div>
+          </div>
+        </div>
+      </article>
+    `
+  }
+
+  function closeSuggestions() {
+    if (!suggestionsEl) return
+    suggestionsEl.innerHTML = ''
+    suggestionsEl.classList.remove('open')
+    suggestionsEl.setAttribute('aria-hidden', 'true')
+    activeSuggestion = -1
+  }
+
+  function highlightMatch(title, q) {
+    const safe = escapeHtml(title)
+    const low = q.toLowerCase()
+    const idx = safe.toLowerCase().indexOf(low)
+    if (idx === -1) return safe
+    return safe.slice(0, idx) + '<mark>' + safe.slice(idx, idx + q.length) + '</mark>' + safe.slice(idx + q.length)
+  }
+
+  function renderSuggestions(items, q) {
+    if (!suggestionsEl) return
+    if (!items.length) {
+      closeSuggestions()
+      return
+    }
+    suggestionsEl.innerHTML = items.map((t, i) => `
+      <div class="suggestion-item" data-index="${i}" data-title="${escapeHtml(t)}">${highlightMatch(t, q)}</div>
+    `).join('')
+    suggestionsEl.classList.add('open')
+    suggestionsEl.setAttribute('aria-hidden', 'false')
+    activeSuggestion = -1
+    suggestionsEl.querySelectorAll('.suggestion-item').forEach(el => {
+      el.addEventListener('click', () => {
+        qInput.value = el.dataset.title
+        closeSuggestions()
+        doSearch({ pushHistory: true })
+      })
+    })
+  }
+
+  async function fetchSuggestions() {
+    const q = qInput.value.trim()
+    if (!q) {
+      closeSuggestions()
+      return
+    }
+    try {
+      const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`)
+      if (!res.ok) throw new Error('suggest failed')
+      const data = await res.json()
+      renderSuggestions(data.suggestions || [], q)
+    } catch (err) {
+      console.error('[cookster] suggest error:', err)
+    }
+  }
+
+  function updateActiveSuggestion() {
+    const items = suggestionsEl.querySelectorAll('.suggestion-item')
+    items.forEach((el, i) => el.classList.toggle('active', i === activeSuggestion))
+    if (activeSuggestion >= 0 && items[activeSuggestion]) {
+      items[activeSuggestion].scrollIntoView({ block: 'nearest' })
+    }
+  }
+
+  function selectSuggestion() {
+    const items = suggestionsEl.querySelectorAll('.suggestion-item')
+    if (activeSuggestion >= 0 && items[activeSuggestion]) {
+      qInput.value = items[activeSuggestion].dataset.title
+      closeSuggestions()
+      doSearch({ pushHistory: true })
+    }
+  }
+
+  function syncUrl(push = false) {
+    const url = new URL(location.href)
+    const q = qInput.value.trim()
+    const source = sourceSelect ? sourceSelect.value : ''
+    if (q && currentView === 'search') {
+      url.searchParams.set('q', q)
+      url.searchParams.set('page', String(page))
+      if (source) url.searchParams.set('source', source)
+      else url.searchParams.delete('source')
+    } else {
+      url.searchParams.delete('q')
+      url.searchParams.delete('page')
+      url.searchParams.delete('source')
+    }
+    if (currentView === 'list' && activeListId) {
+      url.searchParams.set('view', 'list')
+      url.searchParams.set('list', activeListId)
+    } else {
+      url.searchParams.delete('view')
+      url.searchParams.delete('list')
+    }
+    if (push) {
+      history.pushState({ q, page, source, currentView, activeListId }, '', url.toString())
+    } else {
+      history.replaceState({ q, page, source, currentView, activeListId }, '', url.toString())
+    }
+  }
+
+  async function doSearch(options = {}) {
+    const { pushHistory = false, scroll = true } = options
+    const q = qInput.value.trim()
+    const source = sourceSelect ? sourceSelect.value : ''
+
+    if (!q) {
+      resultsEl.innerHTML = `
+        <div class="empty">
+          <h2>Start typing to search</h2>
+          <p>Try an ingredient like "chicken", "chocolate", or "tofu".</p>
+        </div>`
+      countEl.textContent = ''
+      totalResults = 0
+      page = 1
+      lastQuery = ''
+      lastSource = ''
+      currentView = 'search'
+      activeListId = null
+      updatePager()
+      syncUrl(false)
+      return
+    }
+
+    currentView = 'search'
+    activeListId = null
+    if (q !== lastQuery || source !== lastSource) {
+      page = 1
+      lastQuery = q
+      lastSource = source
+    }
+
+    setBusy(true)
+    try {
+      const sourceParam = source ? `&source=${encodeURIComponent(source)}` : ''
+      const res = await fetch(`/search?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}${sourceParam}`)
+      if (!res.ok) throw new Error(`Search failed (${res.status})`)
+      const data = await res.json()
+      totalResults = data.total || 0
+      countEl.textContent = totalResults ? `${totalResults} result${totalResults === 1 ? '' : 's'}` : ''
+      updatePager()
+
+      resultsEl.innerHTML = ''
+      if (!data.results || data.results.length === 0) {
+        resultsEl.innerHTML = `
+          <div class="empty">
+            <h2>No recipes found</h2>
+            <p>Try a different ingredient or recipe name.</p>
+          </div>`
+        bindCardActions()
+        syncUrl(pushHistory)
+        return
+      }
+
+      resultsEl.innerHTML = data.results.map(renderCard).join('')
+      bindCardActions()
+      syncUrl(pushHistory)
+      if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (err) {
+      console.error('[cookster] search error:', err)
+      resultsEl.innerHTML = `
+        <div class="empty">
+          <h2>Something went wrong</h2>
+          <p>${err.message}</p>
+        </div>`
+      updatePager()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function showList(listId, { pushHistory = false, scroll = true } = {}) {
+    activeListId = listId
+    currentView = 'list'
+    let ids = []
+    let title = ''
+    if (listId === '__favorites__') {
+      ids = Lists.getFavorites()
+      title = 'Favourites'
+    } else {
+      const list = Lists.getList(listId)
+      if (!list) return
+      ids = list.recipes
+      title = list.name
+    }
+
+    page = 1
+    totalResults = ids.length
+    updatePager()
+    countEl.textContent = ids.length ? `${ids.length} recipe${ids.length === 1 ? '' : 's'}` : ''
+
+    resultsEl.innerHTML = ''
+    if (ids.length === 0) {
+      resultsEl.innerHTML = `
+        <div class="empty">
+          <h2>${escapeHtml(title)} is empty</h2>
+          <p>Save recipes to see them here.</p>
+        </div>`
+      syncUrl(pushHistory)
+      if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/recipes?ids=${ids.join(',')}`)
+      if (!res.ok) throw new Error('Failed to load list')
+      const data = await res.json()
+      const byId = new Map(data.map(r => [String(r.stable_id || r.id), r]))
+      const ordered = ids.map(id => byId.get(id)).filter(Boolean)
+
+      resultsEl.innerHTML = `
+        <div class="list-view-header">
+          <button id="back-to-search" class="btn secondary">← Back to search</button>
+          <h2>${escapeHtml(title)}</h2>
+        </div>
+        <div class="list-view-results">${ordered.map(renderCard).join('')}</div>
+      `
+      bindCardActions()
+      document.getElementById('back-to-search').addEventListener('click', () => {
+        currentView = 'search'
+        activeListId = null
+        doSearch({ pushHistory: true })
+      })
+      syncUrl(pushHistory)
+      if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (err) {
+      console.error('[cookster] list error:', err)
+      resultsEl.innerHTML = `<div class="empty"><h2>Error loading list</h2><p>${err.message}</p></div>`
+    } finally {
+      setBusy(false)
+    }
+    closeListsPanel()
+  }
+
+  function bindFavButtons() {
+    resultsEl.querySelectorAll('.fav-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const id = btn.dataset.id
+        const nowFav = Lists.toggleFavorite(id)
+        btn.classList.toggle('active', nowFav)
+        btn.setAttribute('aria-label', nowFav ? 'Remove from favourites' : 'Add to favourites')
+        btn.textContent = heartIcon(nowFav)
+      })
+    })
+  }
+
+  async function bindCardActions() {
+    bindFavButtons()
+    resultsEl.querySelectorAll('.add-shopping').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const id = btn.dataset.id
+        try {
+          const res = await fetch(`/api/recipes?ids=${id}`)
+          if (!res.ok) throw new Error('fetch failed')
+          const data = await res.json()
+          const r = data[0]
+          if (!r) return
+          const ingredients = parseIngredients(r.ingredients)
+          if (ingredients.length) {
+            Lists.addShoppingItems(ingredients, r.stable_id || String(r.id), r.source)
+            showToast(`Added ${ingredients.length} ingredient${ingredients.length === 1 ? '' : 's'} to shopping list`)
+          } else {
+            showToast('No ingredients found for this recipe')
+          }
+        } catch (err) {
+          console.error('[cookster] shopping error:', err)
+          showToast('Could not add ingredients')
+        }
+      })
+    })
+
+    resultsEl.querySelectorAll('.plan-meal').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const id = btn.dataset.id
+        const input = btn.parentElement.querySelector('.card-plan-date')
+        const date = input.value
+        if (!date) {
+          showToast('Pick a date first')
+          return
+        }
+        Lists.addMeal(date, id)
+        showToast('Added to meal plan')
+        input.value = ''
+      })
+    })
+  }
+
+  function showToast(message) {
+    let toast = document.getElementById('cookster-toast')
+    if (!toast) {
+      toast = document.createElement('div')
+      toast.id = 'cookster-toast'
+      toast.className = 'cookster-toast'
+      document.body.appendChild(toast)
+    }
+    toast.textContent = message
+    toast.classList.add('show')
+    setTimeout(() => toast.classList.remove('show'), 2200)
+  }
+
+  async function loadSources() {
+    if (!sourceSelect) return
+    try {
+      const res = await fetch('/api/sources')
+      if (!res.ok) throw new Error('Failed to load sources')
+      const data = await res.json()
+      const currentRaw = sourceSelect ? sourceSelect.value : ''
+      sourceSelect.innerHTML = '<option value="">All books</option>' +
+        data.sources.map(s => `<option value="${escapeHtml(s.raw)}">${escapeHtml(s.clean)}</option>`).join('')
+      sourceSelect.value = currentRaw || (params.get('source') || '')
+    } catch (err) {
+      console.error('[cookster] sources error:', err)
+    }
+  }
+
+  async function loadStats() {
+    if (!bookCountEl && !bookCountInlineEl) return
+    try {
+      const res = await fetch('/api/stats')
+      if (!res.ok) throw new Error('Failed to load stats')
+      const data = await res.json()
+      const count = data.total_books || 0
+      if (bookCountEl) bookCountEl.textContent = count
+      if (bookCountInlineEl) bookCountInlineEl.textContent = count
+    } catch (err) {
+      console.error('[cookster] stats error:', err)
+    }
+  }
+
+  // Lists panel tabs --------------------------------------------------------
+  function switchTab(tabName) {
+    if (!listsPanel) return
+    listsPanel.querySelectorAll('.lists-tab').forEach(tab => {
+      const active = tab.dataset.tab === tabName
+      tab.classList.toggle('active', active)
+      tab.setAttribute('aria-selected', active ? 'true' : 'false')
+    })
+    listsPanel.querySelectorAll('.tab-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.dataset.tab === tabName)
+    })
+  }
+
+  listsPanel.querySelectorAll('.lists-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab))
+  })
+
+  function openListsPanel() {
+    listsPanel.classList.add('open')
+    listsBackdrop.classList.add('open')
+    listsPanel.setAttribute('aria-hidden', 'false')
+    renderListsPanel()
+  }
+
+  function closeListsPanel() {
+    listsPanel.classList.remove('open')
+    listsBackdrop.classList.remove('open')
+    listsPanel.setAttribute('aria-hidden', 'true')
+  }
+
+  function renderListsPanel() {
+    const data = Lists.load()
+    favCountEl.textContent = data.favorites.length
+    customListsEl.innerHTML = data.lists.map(list => `
+      <div class="list-row" data-list-id="${list.id}">
+        <div class="list-row-main">
+          <span class="list-name" title="${escapeHtml(list.name)}">${escapeHtml(list.name)}</span>
+          <span class="list-count">${list.recipes.length}</span>
+        </div>
+        <div class="list-row-actions">
+          <button class="icon-btn rename-list" title="Rename">✎</button>
+          <button class="icon-btn delete-list" title="Delete">🗑</button>
+        </div>
+      </div>
+    `).join('') || '<p class="empty-lists">No custom lists yet.</p>'
+
+    customListsEl.querySelectorAll('.list-row').forEach(row => {
+      const id = row.dataset.listId
+      row.querySelector('.list-row-main').addEventListener('click', () => showList(id, { pushHistory: true }))
+      row.querySelector('.rename-list').addEventListener('click', (e) => {
+        e.stopPropagation()
+        const nameSpan = row.querySelector('.list-name')
+        const current = nameSpan.textContent
+        const input = document.createElement('input')
+        input.type = 'text'
+        input.value = current
+        input.className = 'rename-input'
+        nameSpan.replaceWith(input)
+        input.focus()
+        function finish() {
+          if (input.dataset.done === 'true') return
+          input.dataset.done = 'true'
+          Lists.renameList(id, input.value)
+        }
+        input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') finish() })
+        input.addEventListener('blur', finish)
+      })
+      row.querySelector('.delete-list').addEventListener('click', (e) => {
+        e.stopPropagation()
+        if (confirm('Delete this list?')) Lists.deleteList(id)
+      })
+    })
+
+    renderShoppingList()
+    renderMealPlan()
+  }
+
+  function renderShoppingList() {
+    const items = Lists.getShoppingItems()
+    if (!shoppingListEl) return
+    if (!items.length) {
+      shoppingListEl.innerHTML = ''
+      shoppingEmptyEl.style.display = ''
+      clearBoughtBtn.style.display = 'none'
+      return
+    }
+    shoppingEmptyEl.style.display = 'none'
+    clearBoughtBtn.style.display = ''
+    shoppingListEl.innerHTML = items.map(item => `
+      <label class="shopping-item ${item.checked ? 'checked' : ''}">
+        <input type="checkbox" data-id="${item.id}" ${item.checked ? 'checked' : ''}>
+        <span class="shopping-text">${escapeHtml(item.text)}${item.source ? ` <span class="shopping-source">(${escapeHtml(item.source)})</span>` : ''}</span>
+        <button class="shopping-delete" data-id="${item.id}" aria-label="Remove">✕</button>
+      </label>
+    `).join('')
+
+    shoppingListEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => Lists.toggleShoppingItem(cb.dataset.id))
+    })
+    shoppingListEl.querySelectorAll('.shopping-delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault()
+        Lists.removeShoppingItem(btn.dataset.id)
+      })
+    })
+  }
+
+  async function renderMealPlan() {
+    if (!mealPlanEl) return
+    const plan = Lists.getMealPlan()
+    const dates = []
+    const today = new Date()
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today); d.setDate(today.getDate() + i)
+      dates.push(d.toISOString().split('T')[0])
+    }
+
+    const allIds = [...new Set(Object.values(plan).flat())]
+    let titles = new Map()
+    if (allIds.length) {
+      try {
+        const res = await fetch(`/api/recipes?ids=${allIds.join(',')}`)
+        if (res.ok) {
+          const data = await res.json()
+          titles = new Map(data.map(r => [r.stable_id || String(r.id), r.title]))
+        }
+      } catch (err) {
+        console.error('[cookster] meal plan fetch error:', err)
+      }
+    }
+
+    mealPlanEl.innerHTML = dates.map(date => {
+      const ids = plan[date] || []
+      const items = ids.map(id => `
+        <div class="meal-item">
+          <a class="meal-title" href="/recipe/${id}">${escapeHtml(titles.get(id) || 'Recipe')}</a>
+          <button class="meal-remove" data-date="${date}" data-id="${id}" aria-label="Remove">✕</button>
+        </div>
+      `).join('')
+      return `
+        <div class="meal-day">
+          <div class="meal-date">${formatDateLabel(date)}</div>
+          <div class="meal-items">${items || '<span class="meal-empty">No meals planned</span>'}</div>
+        </div>
+      `
+    }).join('')
+
+    mealPlanEl.querySelectorAll('.meal-remove').forEach(btn => {
+      btn.addEventListener('click', () => Lists.removeMeal(btn.dataset.date, btn.dataset.id))
+    })
+  }
+
+  // Backup ---------------------------------------------------------------
+  if (backupExportBtn) {
+    backupExportBtn.addEventListener('click', () => {
+      const data = Lists.exportAll()
+      backupArea.value = JSON.stringify(data, null, 2)
+      backupArea.select()
+      navigator.clipboard.writeText(backupArea.value).catch(() => {})
+      backupStatus.textContent = 'Exported to clipboard/textarea.'
+      backupStatus.className = 'backup-status success'
+    })
+  }
+
+  if (backupImportBtn) {
+    backupImportBtn.addEventListener('click', () => {
+      const result = Lists.importAll(backupArea.value)
+      if (result.ok) {
+        backupStatus.textContent = 'Backup restored.'
+        backupStatus.className = 'backup-status success'
+      } else {
+        backupStatus.textContent = 'Error: ' + result.error
+        backupStatus.className = 'backup-status error'
+      }
+    })
+  }
+
+  // Bind static favourites row once.
+  document.querySelector('.favorite-row')?.addEventListener('click', () => {
+    showList('__favorites__', { pushHistory: true })
+  })
+
+  if (clearBoughtBtn) {
+    clearBoughtBtn.addEventListener('click', () => Lists.clearBought())
+  }
+
+  function debounceSearch() {
+    clearTimeout(timer)
+    timer = setTimeout(() => doSearch({ pushHistory: false, scroll: false }), 250)
+  }
+
+  function debounceSuggestions() {
+    clearTimeout(suggestionTimer)
+    suggestionTimer = setTimeout(fetchSuggestions, 150)
+  }
+
+  // Search event listeners
+  qInput.addEventListener('input', () => {
+    debounceSearch()
+    debounceSuggestions()
+  })
+  qInput.addEventListener('keydown', (e) => {
+    if (suggestionsEl && suggestionsEl.classList.contains('open')) {
+      const items = suggestionsEl.querySelectorAll('.suggestion-item')
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        activeSuggestion = Math.min(activeSuggestion + 1, items.length - 1)
+        updateActiveSuggestion()
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        activeSuggestion = Math.max(activeSuggestion - 1, -1)
+        updateActiveSuggestion()
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        closeSuggestions()
+        return
+      }
+      if (e.key === 'Enter' && activeSuggestion >= 0) {
+        e.preventDefault()
+        selectSuggestion()
+        return
+      }
+    }
+    if (e.key === 'Enter') {
+      closeSuggestions()
+      doSearch({ pushHistory: true })
+    }
+  })
+  document.getElementById('go').addEventListener('click', () => { closeSuggestions(); doSearch({ pushHistory: true }) })
+  if (randomBtn) {
+    randomBtn.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/random')
+        if (!res.ok) throw new Error('random failed')
+        const data = await res.json()
+        if (data.stable_id) location.href = `/recipe/${data.stable_id}`
+      } catch (err) {
+        console.error('[cookster] random error:', err)
+      }
+    })
+  }
+  if (sourceSelect) sourceSelect.addEventListener('change', () => { page = 1; doSearch({ pushHistory: true }) })
+  nextBtn.addEventListener('click', () => { if (page < totalPages()) { page++; doSearch({ pushHistory: true }) } })
+  prevBtn.addEventListener('click', () => { if (page > 1) { page--; doSearch({ pushHistory: true }) } })
+
+  // Close suggestions when clicking outside
+  document.addEventListener('click', (e) => {
+    if (suggestionsEl && !suggestionsEl.contains(e.target) && e.target !== qInput) {
+      closeSuggestions()
+    }
+  })
+
+  // Lists panel listeners
+  listsToggle.addEventListener('click', openListsPanel)
+  listsClose.addEventListener('click', closeListsPanel)
+  listsBackdrop.addEventListener('click', closeListsPanel)
+  newListForm.addEventListener('submit', (e) => {
+    e.preventDefault()
+    const name = newListName.value.trim()
+    if (name) {
+      Lists.createList(name)
+      newListName.value = ''
+      renderListsPanel()
+    }
+  })
+
+  window.addEventListener('cookster-lists-changed', () => {
+    renderListsPanel()
+    if (currentView === 'list') {
+      if (Lists.getList(activeListId)) {
+        showList(activeListId, { pushHistory: false, scroll: false })
+      } else {
+        currentView = 'search'
+        activeListId = null
+        if (lastQuery) doSearch({ pushHistory: false, scroll: false })
+      }
+    }
+    if (currentView === 'search' && lastQuery) doSearch({ pushHistory: false, scroll: false })
+  })
+
+  window.addEventListener('popstate', (e) => {
+    const p = new URLSearchParams(location.search)
+    const newQ = (p.get('q') || '').trim()
+    const newSource = (p.get('source') || '').trim()
+    const view = p.get('view')
+    const listId = p.get('list')
+    if (sourceSelect) sourceSelect.value = newSource
+    if (view === 'list' && listId) {
+      page = 1
+      qInput.value = newQ
+      lastQuery = newQ
+      showList(listId, { pushHistory: false, scroll: false })
+    } else {
+      page = Math.max(1, parseInt(p.get('page'), 10) || 1)
+      qInput.value = newQ
+      lastQuery = newQ
+      lastSource = newSource
+      currentView = 'search'
+      activeListId = null
+      doSearch({ pushHistory: false, scroll: false })
+    }
+  })
+
+  // Theme toggle
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (suggestionsEl && suggestionsEl.classList.contains('open')) {
+        closeSuggestions()
+        return
+      }
+      if (listsPanel.classList.contains('open')) {
+        closeListsPanel()
+        return
+      }
+    }
+    if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault()
+      qInput.focus()
+    }
+  })
+
+  function syncTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    themeBtn.textContent = isDark ? '☀️ Light' : '🌙 Dark'
+  }
+  themeBtn.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    const next = isDark ? 'light' : 'dark'
+    document.documentElement.setAttribute('data-theme', next)
+    localStorage.setItem('theme', next)
+    syncTheme()
+  })
+  const saved = localStorage.getItem('theme')
+  if (saved) document.documentElement.setAttribute('data-theme', saved)
+  syncTheme()
+
+  // Initialise
+  loadSources()
+  loadStats()
+  setInterval(loadStats, 60000)
+  renderListsPanel()
+  const viewParam = params.get('view')
+  const listParam = params.get('list')
+  if (viewParam === 'list' && listParam) {
+    showList(listParam, { pushHistory: false, scroll: false })
+  } else if (lastQuery) {
+    doSearch({ pushHistory: false, scroll: false })
+  } else {
+    updatePager()
+  }
+})()

@@ -1,0 +1,944 @@
+from fastapi import FastAPI, Query, Request, HTTPException
+import re
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+import html
+import hashlib
+import threading
+import time
+try:
+    import nltk
+    from nltk.stem import WordNetLemmatizer
+    lemmatizer = WordNetLemmatizer()
+    # ensure wordnet data is available; download if missing
+    try:
+        lemmatizer.lemmatize('test')
+    except LookupError:
+        nltk.download('wordnet')
+        nltk.download('omw-1.4')
+except Exception:
+    # fallback simple identity function
+    lemmatizer = None
+import sqlite3
+import os
+from typing import List, Tuple
+from ranking import rank_recipes
+from indexer import _image_path_to_url, build_index
+
+app = FastAPI(title='Cookster API')
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), 'templates'))
+
+static_dir = os.path.join(os.path.dirname(__file__), 'static')
+if os.path.isdir(static_dir):
+    app.mount('/static', StaticFiles(directory=static_dir), name='static')
+
+
+# Directories that file paths must stay within.
+DB_DIR = os.path.dirname(os.path.abspath(__file__))
+BOOKS_DIR = os.path.join(DB_DIR, 'books')
+
+
+def _is_under(path: str, base: str) -> bool:
+    base = os.path.abspath(base)
+    path = os.path.abspath(path)
+    return path == base or path.startswith(base + os.sep)
+
+
+def resolve_db_path(db: str) -> str:
+    """Resolve a DB filename/path to an absolute path inside DB_DIR.
+
+    Rejects absolute paths outside DB_DIR and relative paths containing '..'.
+    """
+    if not db or db.strip() in ('', '.'):
+        raise ValueError('db parameter is required')
+    if '..' in db.split(os.sep) or '..' in db.split('/'):
+        raise ValueError('invalid db path')
+    if os.path.isabs(db):
+        resolved = os.path.abspath(db)
+    else:
+        resolved = os.path.abspath(os.path.join(DB_DIR, db))
+    if not _is_under(resolved, DB_DIR):
+        raise ValueError('db path is outside allowed directory')
+    return resolved
+
+
+def resolve_download_path(file_path: str) -> str:
+    """Resolve a download path to an absolute path inside BOOKS_DIR.
+
+    Stored paths may be relative to BOOKS_DIR or already absolute under it.
+    """
+    if not file_path:
+        raise ValueError('file_path is required')
+    if os.path.isabs(file_path):
+        resolved = os.path.abspath(file_path)
+    else:
+        resolved = os.path.abspath(os.path.join(BOOKS_DIR, file_path))
+    if not _is_under(resolved, BOOKS_DIR):
+        raise ValueError('download path is outside allowed directory')
+    return resolved
+
+
+def _clean_source(source: str) -> str:
+    """Return a display-friendly book title from a filename.
+
+    Strips Anna's Archive metadata tails and PDFDrive suffixes.
+    """
+    if not source:
+        return ''
+    base = os.path.splitext(source)[0]
+    # Anna's Archive pattern: "Title -- Author -- Place, Year -- Publisher -- isbn13 ..."
+    if ' -- ' in base:
+        base = base.split(' -- ')[0]
+    # PDFDrive copy suffixes like " ( PDFDrive.com )(1)"
+    base = re.sub(r'\s*\(\s*PDFDrive\.com\s*\)\s*(?:\(\d+\))?\s*$', '', base, flags=re.I)
+    # Trailing underscores/hyphens used in slugified names
+    base = re.sub(r'[_\-]+$', '', base)
+    return base.strip(' -_')
+
+
+def _snippet(text: str, q: str, radius: int = 120, full_if_short: int = 320):
+    """Return a snippet of text around the first query match, or a useful fallback.
+
+    If the text is short enough, return it in full. If the query is not found,
+    return the first `fallback` characters. Matches are highlighted.
+    """
+    if not text:
+        return ''
+    escaped = html.escape(text).replace('\n', '<br>')
+    if not q:
+        return escaped[:full_if_short]
+    if len(text) <= full_if_short:
+        return _highlight_html(text, q).replace('\n', '<br>')
+    idx = text.lower().find(q.lower())
+    if idx == -1:
+        return escaped[:200]
+    start = max(0, idx - radius)
+    end = min(len(text), idx + radius)
+    s = (('...' if start > 0 else '') + text[start:end] + ('...' if end < len(text) else ''))
+    return _highlight_html(s, q).replace('\n', '<br>')
+
+
+def _highlight_html(text: str, q: str):
+    # Build match ranges on the original text, then escape when rebuilding
+    orig = text
+    q_lower = q.lower()
+    tokens = [t for t in re.findall(r"\w+", q_lower) if t]
+
+    def norm(w):
+        if lemmatizer:
+            try:
+                return lemmatizer.lemmatize(w)
+            except Exception:
+                return w
+        return w
+
+    norm_tokens = [norm(t) for t in tokens]
+
+    # Build phrase n-grams from query tokens (length >=2)
+    phrases = []
+    n = len(tokens)
+    for L in range(n, 1, -1):
+        for i in range(0, n - L + 1):
+            phrases.append(' '.join(tokens[i:i+L]))
+    # include full normalized phrase forms
+    norm_phrases = [' '.join([norm(w) for w in ph.split()]) for ph in phrases]
+
+    matches = []
+    # find phrase matches first (longer spans)
+    for ph in norm_phrases:
+        pattern = re.compile(r'\b' + re.escape(ph) + r'\b', re.I)
+        for m in pattern.finditer(orig.lower()):
+            matches.append((m.start(), m.end()))
+
+    # find token matches
+    for t in norm_tokens:
+        pattern = re.compile(r'\b' + re.escape(t) + r'\b', re.I)
+        for m in pattern.finditer(orig.lower()):
+            matches.append((m.start(), m.end()))
+
+    # sort matches by start then by length desc and select non-overlapping
+    matches = sorted(matches, key=lambda x: (x[0], -(x[1]-x[0])))
+    selected = []
+    last_end = -1
+    for s,e in matches:
+        if s >= last_end:
+            selected.append((s,e))
+            last_end = e
+
+    # rebuild escaped string with <b> tags at selected ranges
+    if not selected:
+        return html.escape(orig)
+
+    out_parts = []
+    idx = 0
+    for s,e in selected:
+        if idx < s:
+            out_parts.append(html.escape(orig[idx:s]))
+        out_parts.append('<b>' + html.escape(orig[s:e]) + '</b>')
+        idx = e
+    if idx < len(orig):
+        out_parts.append(html.escape(orig[idx:]))
+    return ''.join(out_parts)
+
+
+def _sanitize_fts_query(q: str) -> str:
+    """Escape FTS5 special characters so user input cannot break MATCH.
+
+    FTS5 treats double quotes, asterisks, and NEAR/OR/AND specially. We keep
+    alphanumeric tokens separated by spaces, which is robust and still allows
+    multi-word searches.
+    """
+    # Extract word tokens; drop everything else.
+    tokens = re.findall(r"\w+", q)
+    return ' '.join(tokens)
+
+
+def compute_stable_id(recipe: dict) -> str:
+    """Return a stable identifier for a recipe based on content.
+
+    The hash is computed from the title, source, and full ingredients/steps
+    so it survives DB re-indexing and is very unlikely to collide.
+    """
+    text = '::'.join([
+        (recipe.get('title') or '').strip().lower(),
+        (recipe.get('source') or '').strip().lower(),
+        (recipe.get('ingredients') or '').strip().lower(),
+        (recipe.get('steps') or '').strip().lower(),
+    ])
+    return hashlib.sha256(text.encode('utf-8')).hexdigest()[:24]
+
+
+def _ensure_schema(conn: sqlite3.Connection):
+    """Make sure the recipes table has the stable_id column and an index, and backfill any missing values."""
+    c = conn.cursor()
+    cols = [r[1] for r in c.execute('PRAGMA table_info(recipes)')]
+    if 'stable_id' not in cols:
+        c.execute('ALTER TABLE recipes ADD COLUMN stable_id TEXT')
+    if 'serves' not in cols:
+        c.execute('ALTER TABLE recipes ADD COLUMN serves TEXT')
+    c.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_recipes_stable_id ON recipes(stable_id)')
+    conn.commit()
+    # Backfill any rows that don't have a stable_id yet.
+    needs_backfill = c.execute('SELECT 1 FROM recipes WHERE stable_id IS NULL LIMIT 1').fetchone() is not None
+    if needs_backfill:
+        rows = c.execute('SELECT id, title, ingredients, source, file_path, steps FROM recipes WHERE stable_id IS NULL').fetchall()
+        upd = conn.cursor()
+        for row in rows:
+            rid, title, ingredients, source, file_path, steps = row
+            stable_id = compute_stable_id({
+                'title': title or '',
+                'source': source or '',
+                'ingredients': ingredients or '',
+                'steps': steps or '',
+            })
+            upd.execute('UPDATE recipes SET stable_id = ? WHERE id = ?', (stable_id, rid))
+        conn.commit()
+
+
+def _lookup_recipe(conn: sqlite3.Connection, recipe_id_or_stable: str):
+    """Find a recipe by integer id or stable_id. Returns a dict or None.
+
+    Handles DBs without an image column.
+    """
+    c = conn.cursor()
+    base_cols = 'id, title, ingredients, steps, source, file_path, stable_id'
+    try:
+        cols = base_cols + ', image, serves'
+        if recipe_id_or_stable.isdigit():
+            c.execute(f'SELECT {cols} FROM recipes WHERE id = ?', (int(recipe_id_or_stable),))
+        else:
+            c.execute(f'SELECT {cols} FROM recipes WHERE stable_id = ?', (recipe_id_or_stable,))
+        row = c.fetchone()
+    except sqlite3.OperationalError:
+        cols = base_cols
+        try:
+            cols = base_cols + ', image'
+            if recipe_id_or_stable.isdigit():
+                c.execute(f'SELECT {cols} FROM recipes WHERE id = ?', (int(recipe_id_or_stable),))
+            else:
+                c.execute(f'SELECT {cols} FROM recipes WHERE stable_id = ?', (recipe_id_or_stable,))
+            row = c.fetchone()
+        except sqlite3.OperationalError:
+            cols = base_cols
+            if recipe_id_or_stable.isdigit():
+                c.execute(f'SELECT {cols} FROM recipes WHERE id = ?', (int(recipe_id_or_stable),))
+            else:
+                c.execute(f'SELECT {cols} FROM recipes WHERE stable_id = ?', (recipe_id_or_stable,))
+            row = c.fetchone()
+    if not row:
+        return None
+    has_image = 'image' in cols
+    has_serves = 'serves' in cols
+    return {
+        'id': row[0],
+        'title': row[1],
+        'ingredients': row[2] or '',
+        'steps': row[3] or '',
+        'source': row[4],
+        'file_path': row[5],
+        'stable_id': row[6] or '',
+        'image': row[7] if has_image else '',
+        'serves': row[8] if has_serves else '',
+    }
+
+
+def _parse_query_tokens(q: str) -> Tuple[List[str], List[str]]:
+    tokens = [t for t in (q or '').lower().split() if t]
+    positive = [t for t in tokens if not t.startswith('-')]
+    negative = [t[1:] for t in tokens if t.startswith('-') and len(t) > 1]
+    return positive, negative
+
+
+def _candidate_matches(candidate: dict, q: str) -> bool:
+    positive, negative = _parse_query_tokens(q)
+    text = ((candidate.get('title') or '') + ' ' + (candidate.get('ingredients') or '') + ' ' + (candidate.get('steps') or '')).lower()
+    if positive and not all(t in text for t in positive):
+        return False
+    if negative and any(t in text for t in negative):
+        return False
+    return True
+
+
+def _query_db(db_path: str, q: str, limit: int = 10, page: int = 1, source: str = None):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    _ensure_schema(conn)
+    results = []
+
+    def _fetch_rows(where: str, params=()):
+        """Fetch candidate rows, gracefully handling DBs without image/serves columns."""
+        base_cols = "id, title, source, ingredients, steps, stable_id, serves"
+        try:
+            c.execute(f'SELECT {base_cols}, image FROM recipes {where}', params)
+            rows = c.fetchall()
+            return [dict(id=r[0], title=r[1], source=r[2], ingredients=r[3] or '', steps=r[4] or '', stable_id=r[5] or '', serves=r[6] or '', image=r[7] or '') for r in rows]
+        except sqlite3.OperationalError:
+            c.execute(f'SELECT id, title, source, ingredients, steps, stable_id FROM recipes {where}', params)
+            rows = c.fetchall()
+            return [dict(id=r[0], title=r[1], source=r[2], ingredients=r[3] or '', steps=r[4] or '', stable_id=r[5] or '', serves='', image='') for r in rows]
+
+    source_filter = ''
+    source_params = []
+    if source:
+        source_filter = "WHERE source = ?"
+        source_params = [source]
+
+    use_fts = True
+    try:
+        safe_q = _sanitize_fts_query(q)
+        if safe_q:
+            c.execute(f"SELECT rowid FROM recipes_fts WHERE recipes_fts MATCH ?", (safe_q,))
+            ids = [r[0] for r in c.fetchall()]
+            if not ids:
+                conn.close()
+                return [], 0
+            if source_filter:
+                where = f"WHERE id IN ({','.join('?' for _ in ids)}) AND source = ?"
+                params = ids + [source]
+            else:
+                where = f"WHERE id IN ({','.join('?' for _ in ids)})"
+                params = ids
+            candidates = _fetch_rows(where, params)
+        else:
+            candidates = _fetch_rows(source_filter, source_params) if source_filter else _fetch_rows("")
+            use_fts = False
+    except sqlite3.OperationalError:
+        candidates = _fetch_rows(source_filter, source_params) if source_filter else _fetch_rows("")
+        use_fts = False
+
+    # rank candidates with BM25, then apply positive/negative token filters.
+    ranked = rank_recipes(candidates, q, top_n=len(candidates) if not use_fts else limit * page)
+    ranked = [c for c in ranked if _candidate_matches(c, q)]
+    total = len(ranked)
+
+    # pagination
+    start = (page - 1) * limit
+    page_items = ranked[start:start + limit]
+
+    for r in page_items:
+        results.append({
+            'id': r['id'],
+            'stable_id': r['stable_id'],
+            'title': r['title'],
+            'source': _clean_source(r['source']),
+            'source_raw': r['source'],
+            'serves': r.get('serves', ''),
+            'ingredients_snippet': _snippet(r.get('ingredients',''), q),
+            'steps_snippet': _snippet(r.get('steps',''), q),
+            'image_url': _image_path_to_url(r.get('image', '')),
+            'score': r.get('score', 0.0),
+        })
+    conn.close()
+    return results, total
+
+
+@app.get('/', response_class=HTMLResponse)
+def ui(request: Request):
+    tmpl = templates.env.get_template('index.html')
+    content = tmpl.render(request=request)
+    return HTMLResponse(content)
+
+
+@app.get('/search')
+def search(q: str = Query(..., min_length=1),
+           db: str = Query('cookster.db'),
+           limit: int = Query(10, ge=1, le=100),
+           page: int = Query(1, ge=1, le=10000),
+           source: str = Query(None)):
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found', 'db': db}, status_code=400)
+    results, total = _query_db(db_path, q, limit, page, source=source)
+    return {'query': q, 'results': results, 'page': page, 'total': total, 'source': source}
+
+
+@app.get('/api/sources')
+def list_sources(db: str = Query('cookster.db')):
+    """Return distinct source books for the filter dropdown (raw DB value + cleaned label)."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found', 'db': db}, status_code=400)
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    try:
+        rows = c.execute('SELECT DISTINCT source FROM recipes WHERE source IS NOT NULL AND source != ""').fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    conn.close()
+    seen = set()
+    sources = []
+    for r in rows:
+        raw = r[0]
+        if not raw or raw in seen:
+            continue
+        seen.add(raw)
+        sources.append({'raw': raw, 'clean': _clean_source(raw)})
+    sources.sort(key=lambda x: x['clean'])
+    return {'sources': sources}
+
+
+@app.get('/api/stats')
+def stats(db: str = Query('cookster.db')):
+    """Return high-level index statistics."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found', 'db': db}, status_code=400)
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    try:
+        total = c.execute('SELECT COUNT(*) FROM recipes').fetchone()[0]
+        books = c.execute('SELECT COUNT(DISTINCT source) FROM recipes WHERE source IS NOT NULL AND source != ""').fetchone()[0]
+    except sqlite3.OperationalError:
+        total = 0
+        books = 0
+    conn.close()
+    return {'total_recipes': total, 'total_books': books}
+
+
+@app.get('/api/recipes')
+def batch_recipes(ids: str = Query(...), db: str = Query('cookster.db')):
+    """Return recipe summaries for a comma-separated list of integer ids or stable_ids."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found', 'db': db}, status_code=400)
+
+    raw = [x.strip() for x in ids.split(',') if x.strip()]
+    if not raw:
+        return []
+    if len(raw) > 500:
+        return JSONResponse({'error': 'too many ids (max 500)'}, status_code=400)
+
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    _ensure_schema(conn)
+
+    # Split into integer ids and stable_ids.
+    int_ids = [int(x) for x in raw if x.isdigit()]
+    stable_ids = [x for x in raw if not x.isdigit()]
+
+    base_cols = 'id, title, source, stable_id, ingredients, serves'
+    has_image = True
+    try:
+        cols = base_cols + ', image'
+        rows = []
+        if int_ids:
+            placeholders = ','.join('?' * len(int_ids))
+            rows += c.execute(f'SELECT {cols} FROM recipes WHERE id IN ({placeholders})', int_ids).fetchall()
+        if stable_ids:
+            placeholders = ','.join('?' * len(stable_ids))
+            rows += c.execute(f'SELECT {cols} FROM recipes WHERE stable_id IN ({placeholders})', stable_ids).fetchall()
+    except sqlite3.OperationalError:
+        has_image = False
+        cols = base_cols
+        rows = []
+        if int_ids:
+            placeholders = ','.join('?' * len(int_ids))
+            rows += c.execute(f'SELECT {cols} FROM recipes WHERE id IN ({placeholders})', int_ids).fetchall()
+        if stable_ids:
+            placeholders = ','.join('?' * len(stable_ids))
+            rows += c.execute(f'SELECT {cols} FROM recipes WHERE stable_id IN ({placeholders})', stable_ids).fetchall()
+    conn.close()
+
+    seen = set()
+    out = []
+    for r in rows:
+        key = r[0]
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({
+            'id': r[0],
+            'title': r[1] or '',
+            'source': _clean_source(r[2] or ''),
+            'source_raw': r[2] or '',
+            'stable_id': r[3] or '',
+            'ingredients': r[4] or '',
+            'serves': r[5] if not has_image else r[5] or '',
+            'image_url': _image_path_to_url(r[6] or '') if has_image else '',
+        })
+    return out
+
+
+@app.get('/recipe/{recipe_id}', response_class=HTMLResponse)
+def recipe_view(request: Request, recipe_id: str, db: str = Query('cookster.db')):
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return templates.TemplateResponse('recipe.html', {'request': request, 'error': str(e)})
+    if not os.path.exists(db_path):
+        return templates.TemplateResponse('recipe.html', {'request': request, 'error': 'DB not found'})
+    conn = sqlite3.connect(db_path)
+    _ensure_schema(conn)
+    recipe = _lookup_recipe(conn, recipe_id)
+    conn.close()
+    if not recipe:
+        return templates.TemplateResponse('recipe.html', {'request': request, 'error': 'Recipe not found'})
+    recipe['source'] = _clean_source(recipe['source'])
+    image_url = _image_path_to_url(recipe.get('image', ''))
+    # Determine whether method steps are already numbered so we can avoid
+    # adding duplicate CSS counters.
+    step_lines = [s.strip() for s in (recipe.get('steps') or '').split('\n') if s.strip()]
+    numbered = sum(1 for s in step_lines if re.match(r'^\d+[\.\)]\s*', s)) if step_lines else 0
+    steps_numbered = numbered > len(step_lines) // 2
+
+    tmpl = templates.env.get_template('recipe.html')
+    content = tmpl.render(request=request, recipe=recipe, image_url=image_url,
+                          steps_numbered=steps_numbered, serves=recipe.get('serves', ''))
+    return HTMLResponse(content)
+
+
+@app.get('/download/{recipe_id}')
+def download_recipe(recipe_id: str, db: str = Query('cookster.db')):
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found'}, status_code=400)
+    conn = sqlite3.connect(db_path)
+    _ensure_schema(conn)
+    recipe = _lookup_recipe(conn, recipe_id)
+    conn.close()
+    if not recipe:
+        return JSONResponse({'error': 'recipe not found'}, status_code=404)
+    file_path = recipe.get('file_path') or ''
+    try:
+        path = resolve_download_path(file_path)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(path):
+        return JSONResponse({'error': 'file not found'}, status_code=404)
+    media_type = 'application/pdf' if path.lower().endswith('.pdf') else 'application/epub+zip'
+    return FileResponse(path, media_type=media_type, filename=os.path.basename(path))
+
+
+@app.get('/api/suggest')
+def suggest(q: str = Query(..., min_length=1),
+            db: str = Query('cookster.db'),
+            limit: int = Query(8, ge=1, le=20)):
+    """Return recipe title suggestions matching the query prefix."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found', 'db': db}, status_code=400)
+    safe = re.sub(r'[^\w\s]', '', q).strip()
+    if not safe:
+        return {'query': q, 'suggestions': []}
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    like = f'%{safe}%'
+    rows = c.execute('SELECT title FROM recipes WHERE title LIKE ? ORDER BY title LIMIT ?', (like, limit)).fetchall()
+    conn.close()
+    return {'query': q, 'suggestions': [r[0] for r in rows]}
+
+
+@app.get('/api/random')
+def random_recipe(db: str = Query('cookster.db')):
+    """Return a single random recipe summary."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found', 'db': db}, status_code=400)
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    _ensure_schema(conn)
+    try:
+        row = c.execute('SELECT id, title, source, stable_id, image FROM recipes ORDER BY RANDOM() LIMIT 1').fetchone()
+    except sqlite3.OperationalError:
+        row = c.execute('SELECT id, title, source, stable_id FROM recipes ORDER BY RANDOM() LIMIT 1').fetchone()
+    conn.close()
+    if not row:
+        return JSONResponse({'error': 'no recipes'}, status_code=404)
+    has_image = len(row) >= 5
+    return {
+        'id': row[0],
+        'title': row[1],
+        'source': _clean_source(row[2]),
+        'stable_id': row[3],
+        'image_url': _image_path_to_url(row[4] if has_image else ''),
+    }
+
+
+@app.get('/api/related/{stable_id}')
+def related_recipes(stable_id: str, db: str = Query('cookster.db')):
+    """Return recipes related to the given one: more from the same book and similar recipes."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found', 'db': db}, status_code=400)
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    _ensure_schema(conn)
+    target = _lookup_recipe(conn, stable_id)
+    if not target:
+        conn.close()
+        return JSONResponse({'error': 'recipe not found'}, status_code=404)
+
+    raw_source = target.get('source') or ''
+
+    # More from the same book
+    try:
+        c.execute('SELECT id, title, source, stable_id, image FROM recipes WHERE source = ? AND stable_id != ? ORDER BY title LIMIT 6',
+                  (raw_source, stable_id))
+        rows = c.fetchall()
+    except sqlite3.OperationalError:
+        c.execute('SELECT id, title, source, stable_id FROM recipes WHERE source = ? AND stable_id != ? ORDER BY title LIMIT 6',
+                  (raw_source, stable_id))
+        rows = [(*r, '') for r in c.fetchall()]
+
+    same_book = []
+    seen = {stable_id}
+    for r in rows:
+        sid = r[3]
+        if sid in seen:
+            continue
+        seen.add(sid)
+        same_book.append({
+            'id': r[0],
+            'title': r[1],
+            'source': _clean_source(r[2]),
+            'stable_id': sid,
+            'image_url': _image_path_to_url(r[4] or ''),
+        })
+
+    # Similar recipes from other books using BM25 with the target's content as the query
+    candidates = []
+    try:
+        c.execute('SELECT id, title, source, stable_id, ingredients, steps, image FROM recipes WHERE stable_id != ? AND source != ?',
+                  (stable_id, raw_source))
+        rows = c.fetchall()
+    except sqlite3.OperationalError:
+        c.execute('SELECT id, title, source, stable_id, ingredients, steps FROM recipes WHERE stable_id != ? AND source != ?',
+                  (stable_id, raw_source))
+        rows = [(*r, '') for r in c.fetchall()]
+    for r in rows:
+        candidates.append({
+            'id': r[0],
+            'title': r[1],
+            'source': r[2],
+            'stable_id': r[3],
+            'ingredients': r[4] or '',
+            'steps': r[5] or '',
+            'image': r[6] or '',
+        })
+
+    query = (target.get('title') or '') + ' ' + (target.get('ingredients') or '')
+    ranked = rank_recipes(candidates, query, top_n=6)
+    similar = []
+    for r in ranked:
+        if r['stable_id'] in seen:
+            continue
+        seen.add(r['stable_id'])
+        similar.append({
+            'id': r['id'],
+            'title': r['title'],
+            'source': _clean_source(r['source']),
+            'stable_id': r['stable_id'],
+            'image_url': _image_path_to_url(r.get('image', '')),
+        })
+
+    conn.close()
+    return {'same_book': same_book, 'similar': similar}
+
+
+@app.get('/api/recipes-by-source')
+def recipes_by_source(
+    source: str = Query(...),
+    db: str = Query('cookster.db'),
+    limit: int = Query(50, ge=1, le=200),
+    page: int = Query(1, ge=1, le=10000),
+):
+    """Return all recipes from a single source book, paginated and ranked by title."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    if not os.path.exists(db_path):
+        return JSONResponse({'error': 'DB not found', 'db': db}, status_code=400)
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    _ensure_schema(conn)
+    base_cols = 'id, title, source, stable_id, serves'
+    try:
+        cols = base_cols + ', image'
+        c.execute(f'SELECT {cols} FROM recipes WHERE source = ? ORDER BY title COLLATE NOCASE LIMIT ? OFFSET ?',
+                  (source, limit, (page - 1) * limit))
+        rows = c.fetchall()
+        c.execute('SELECT COUNT(*) FROM recipes WHERE source = ?', (source,))
+        total = c.fetchone()[0]
+    except sqlite3.OperationalError:
+        cols = base_cols
+        c.execute(f'SELECT {cols} FROM recipes WHERE source = ? ORDER BY title COLLATE NOCASE LIMIT ? OFFSET ?',
+                  (source, limit, (page - 1) * limit))
+        rows = c.fetchall()
+        c.execute('SELECT COUNT(*) FROM recipes WHERE source = ?', (source,))
+        total = c.fetchone()[0]
+    conn.close()
+    results = []
+    for r in rows:
+        # Columns: id, title, source, stable_id, serves, image (6 total)
+        has_image = len(r) >= 6
+        results.append({
+            'id': r[0],
+            'title': r[1] or '',
+            'source': _clean_source(r[2] or ''),
+            'source_raw': r[2] or '',
+            'stable_id': r[3] or '',
+            'serves': r[4] or '',
+            'image_url': _image_path_to_url(r[5] or '') if has_image else '',
+        })
+    return {'source': _clean_source(source), 'source_raw': source, 'page': page, 'limit': limit, 'total': total, 'results': results}
+
+
+@app.get('/books', response_class=HTMLResponse)
+def books_list(request: Request, db: str = Query('cookster.db')):
+    """Render a page listing all indexed books with recipe counts."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        tmpl = templates.env.get_template('books.html')
+        content = tmpl.render(request=request, error=str(e))
+        return HTMLResponse(content)
+    if not os.path.exists(db_path):
+        tmpl = templates.env.get_template('books.html')
+        content = tmpl.render(request=request, error='DB not found')
+        return HTMLResponse(content)
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    _ensure_schema(conn)
+    try:
+        rows = c.execute(
+            'SELECT source, COUNT(*) FROM recipes '
+            'WHERE source IS NOT NULL AND source != "" GROUP BY source ORDER BY source'
+        ).fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    # Pick one representative image per source for a cover thumbnail.
+    cover_images: Dict[str, str] = {}
+    try:
+        for raw_source, image in c.execute(
+            "SELECT source, image FROM recipes "
+            "WHERE image IS NOT NULL AND image != '' ORDER BY id"
+        ):
+            if raw_source not in cover_images:
+                cover_images[raw_source] = _image_path_to_url(image)
+    except sqlite3.OperationalError:
+        pass
+    conn.close()
+    books = []
+    seen = set()
+    for raw, count in rows:
+        if not raw or raw in seen:
+            continue
+        seen.add(raw)
+        books.append({
+            'raw': raw,
+            'clean': _clean_source(raw),
+            'count': count,
+            'image_url': cover_images.get(raw, ''),
+        })
+    books.sort(key=lambda x: x['clean'])
+    tmpl = templates.env.get_template('books.html')
+    content = tmpl.render(request=request, books=books, db=db)
+    return HTMLResponse(content)
+
+
+@app.get('/book', response_class=HTMLResponse)
+def book_view(request: Request, source: str = Query(...), db: str = Query('cookster.db')):
+    """Render a browse-by-book page for a single source."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        tmpl = templates.env.get_template('book.html')
+        content = tmpl.render(request=request, error=str(e))
+        return HTMLResponse(content)
+    if not os.path.exists(db_path):
+        tmpl = templates.env.get_template('book.html')
+        content = tmpl.render(request=request, error='DB not found')
+        return HTMLResponse(content)
+    tmpl = templates.env.get_template('book.html')
+    content = tmpl.render(request=request, source=source, source_clean=_clean_source(source), db=db)
+    return HTMLResponse(content)
+
+
+# Background indexing state and endpoints -------------------------------------
+
+_index_lock = threading.Lock()
+_index_state = {
+    'running': False,
+    'state': 'idle',
+    'message': '',
+    'started_at': None,
+    'finished_at': None,
+    'books_total': 0,
+    'books_done': 0,
+}
+
+
+def _resolve_index_dirs(books_dir: str = None, recipes_dir: str = None):
+    """Return safe default directories for background indexing."""
+    if books_dir:
+        books = os.path.abspath(books_dir)
+        if not _is_under(books, BOOKS_DIR):
+            raise ValueError('books_dir outside project')
+    else:
+        books = BOOKS_DIR
+    if recipes_dir:
+        recipes = os.path.abspath(recipes_dir)
+        if not _is_under(recipes, DB_DIR):
+            raise ValueError('recipes_dir outside project')
+    else:
+        recipes = os.path.join(DB_DIR, 'data', 'recipes')
+    return books, recipes
+
+
+def _run_indexer(books_dir: str, recipes_dir: str, db_path: str, force: bool):
+    global _index_state
+    with _index_lock:
+        _index_state.update({
+            'running': True,
+            'state': 'running',
+            'message': 'Indexing started',
+            'started_at': time.time(),
+            'finished_at': None,
+            'books_total': 0,
+            'books_done': 0,
+        })
+    try:
+        build_index(books_dir, recipes_dir, db_path, force=force)
+        with _index_lock:
+            _index_state.update({
+                'running': False,
+                'state': 'complete',
+                'message': 'Indexing complete',
+                'finished_at': time.time(),
+            })
+    except Exception as e:
+        with _index_lock:
+            _index_state.update({
+                'running': False,
+                'state': 'error',
+                'message': str(e),
+                'finished_at': time.time(),
+            })
+
+
+@app.get('/api/index/status')
+def index_status():
+    """Return the current state of the background indexer."""
+    with _index_lock:
+        status = dict(_index_state)
+    status['started_at'] = status['started_at']
+    status['finished_at'] = status['finished_at']
+    return status
+
+
+@app.post('/api/index/start')
+def index_start(
+    db: str = Query('cookster.db'),
+    books_dir: str = Query(None),
+    recipes_dir: str = Query(None),
+    force: bool = Query(False),
+):
+    """Start a background re-index. Returns immediately with the new status."""
+    try:
+        db_path = resolve_db_path(db)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+    try:
+        books, recipes = _resolve_index_dirs(books_dir, recipes_dir)
+    except ValueError as e:
+        return JSONResponse({'error': str(e)}, status_code=400)
+
+    with _index_lock:
+        if _index_state['running']:
+            return JSONResponse({
+                'error': 'Indexer already running',
+                'status': dict(_index_state),
+            }, status_code=409)
+
+    thread = threading.Thread(
+        target=_run_indexer,
+        args=(books, recipes, db_path, force),
+        daemon=True,
+    )
+    thread.start()
+    return {
+        'running': True,
+        'state': 'running',
+        'message': 'Indexing started',
+        'started_at': _index_state['started_at'],
+        'finished_at': None,
+        'books_total': 0,
+        'books_done': 0,
+    }
+
+
+@app.get('/api/index/start')
+def index_start_get(
+    db: str = Query('cookster.db'),
+    books_dir: str = Query(None),
+    recipes_dir: str = Query(None),
+    force: bool = Query(False),
+):
+    """GET convenience wrapper for /api/index/start."""
+    return index_start(db=db, books_dir=books_dir, recipes_dir=recipes_dir, force=force)

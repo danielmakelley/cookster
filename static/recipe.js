@@ -1,0 +1,384 @@
+(() => {
+  const Lists = window.CooksterLists
+  const recipeId = String(document.getElementById('recipe-fav').dataset.id)
+  const favBtn = document.getElementById('recipe-fav')
+  const listToggle = document.getElementById('list-toggle')
+  const listMenu = document.getElementById('list-menu')
+  const listMenuItems = document.getElementById('list-menu-items')
+  const newListFromRecipe = document.getElementById('new-list-from-recipe')
+  const backLink = document.getElementById('back-link')
+  const addIngredientsBtn = document.getElementById('add-ingredients-shopping')
+  const planDateInput = document.getElementById('recipe-plan-date')
+  const addToMealPlanBtn = document.getElementById('add-to-meal-plan')
+  const ratingEl = document.getElementById('recipe-rating')
+  const ratingDisplayEl = document.getElementById('recipe-rating-display')
+  const markCookedBtn = document.getElementById('mark-cooked')
+  const cookedDateEl = document.getElementById('cooked-date')
+  const notesInput = document.getElementById('recipe-notes')
+
+  if (backLink && document.referrer && new URL(document.referrer).origin === location.origin) {
+    backLink.href = document.referrer
+  }
+
+  function updateFav() {
+    const isFav = Lists.isFavorite(recipeId)
+    favBtn.classList.toggle('active', isFav)
+    favBtn.textContent = isFav ? '♥' : '♡'
+    favBtn.setAttribute('aria-label', isFav ? 'Remove from favourites' : 'Add to favourites')
+  }
+
+  function renderMenu() {
+    const lists = Lists.getLists()
+    if (lists.length === 0) {
+      listMenuItems.innerHTML = '<div class="list-menu-empty">No lists yet.</div>'
+      return
+    }
+    listMenuItems.innerHTML = lists.map(list => {
+      const checked = Lists.isInList(list.id, recipeId) ? 'checked' : ''
+      return `
+        <label class="list-menu-item">
+          <input type="checkbox" data-list-id="${list.id}" ${checked}>
+          <span>${escapeHtml(list.name)}</span>
+        </label>
+      `
+    }).join('')
+
+    listMenuItems.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          Lists.addToList(cb.dataset.listId, recipeId)
+        } else {
+          Lists.removeFromList(cb.dataset.listId, recipeId)
+        }
+      })
+    })
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  }
+
+  function showToast(message) {
+    let toast = document.getElementById('cookster-toast')
+    if (!toast) {
+      toast = document.createElement('div')
+      toast.id = 'cookster-toast'
+      toast.className = 'cookster-toast'
+      document.body.appendChild(toast)
+    }
+    toast.textContent = message
+    toast.classList.add('show')
+    setTimeout(() => toast.classList.remove('show'), 2200)
+  }
+
+  function getIngredients() {
+    const items = document.querySelectorAll('.ingredient-list li')
+    return Array.from(items).map(li => li.textContent.trim()).filter(Boolean)
+  }
+
+  function getRecipeSource() {
+    const meta = document.querySelector('.recipe-meta strong')
+    return meta ? meta.textContent.trim() : ''
+  }
+
+  favBtn.addEventListener('click', () => {
+    Lists.toggleFavorite(recipeId)
+    updateFav()
+  })
+
+  listToggle.addEventListener('click', (e) => {
+    e.stopPropagation()
+    listMenu.classList.toggle('open')
+    renderMenu()
+  })
+
+  document.addEventListener('click', (e) => {
+    if (!listMenu.contains(e.target) && e.target !== listToggle) {
+      listMenu.classList.remove('open')
+    }
+  })
+
+  newListFromRecipe.addEventListener('click', () => {
+    const name = prompt('Name your new list:')
+    if (!name) return
+    const list = Lists.createList(name)
+    if (list) Lists.addToList(list.id, recipeId)
+    renderMenu()
+  })
+
+  addIngredientsBtn.addEventListener('click', () => {
+    const ingredients = getIngredients()
+    if (!ingredients.length) {
+      showToast('No ingredients found')
+      return
+    }
+    Lists.addShoppingItems(ingredients, recipeId, getRecipeSource())
+    showToast(`Added ${ingredients.length} ingredient${ingredients.length === 1 ? '' : 's'} to shopping list`)
+  })
+
+  addToMealPlanBtn.addEventListener('click', () => {
+    const date = planDateInput.value
+    if (!date) {
+      showToast('Pick a date first')
+      return
+    }
+    Lists.addMeal(date, recipeId)
+    showToast('Added to meal plan')
+    planDateInput.value = ''
+  })
+
+  function renderHeaderRating() {
+    if (!ratingDisplayEl) return
+    const rating = Lists.getRating(recipeId)
+    if (!rating) {
+      ratingDisplayEl.innerHTML = ''
+      ratingDisplayEl.style.display = 'none'
+      return
+    }
+    ratingDisplayEl.style.display = ''
+    const stars = [1, 2, 3, 4, 5].map(i => `<span class="rating-star-display ${i <= rating ? 'active' : ''}">★</span>`).join('')
+    ratingDisplayEl.innerHTML = `<span class="rating-display" title="${rating} star${rating === 1 ? '' : 's'}">${stars}</span>`
+  }
+
+  function renderRating() {
+    const rating = Lists.getRating(recipeId)
+    ratingEl.innerHTML = [1, 2, 3, 4, 5].map(star => {
+      const active = star <= rating ? 'active' : ''
+      return `<button class="star ${active}" data-star="${star}" aria-label="Rate ${star} stars">★</button>`
+    }).join('')
+    ratingEl.querySelectorAll('.star').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const star = parseInt(btn.dataset.star, 10)
+        const current = Lists.getRating(recipeId)
+        Lists.setRating(recipeId, current === star ? 0 : star)
+        renderRating()
+      })
+    })
+    renderHeaderRating()
+  }
+
+  function renderCooked() {
+    const date = Lists.getCookedDate(recipeId)
+    if (date) {
+      const formatted = new Date(date).toLocaleDateString()
+      cookedDateEl.textContent = `You cooked this on ${formatted}`
+    } else {
+      cookedDateEl.textContent = ''
+    }
+  }
+
+  markCookedBtn.addEventListener('click', () => {
+    Lists.markCooked(recipeId)
+    renderCooked()
+    showToast('Marked as cooked today')
+  })
+
+  if (notesInput) {
+    notesInput.value = Lists.getNote(recipeId)
+    let saveTimer = null
+    notesInput.addEventListener('input', () => {
+      clearTimeout(saveTimer)
+      saveTimer = setTimeout(() => Lists.setNote(recipeId, notesInput.value), 400)
+    })
+    notesInput.addEventListener('blur', () => Lists.setNote(recipeId, notesInput.value))
+  }
+
+  function renderRelatedCard(r) {
+    const imageHtml = r.image_url
+      ? `<div class="related-media"><img src="${r.image_url}" alt="" loading="lazy"></div>`
+      : `<div class="related-media placeholder">📷</div>`
+    return `
+      <a class="related-card" href="/recipe/${r.stable_id}">
+        ${imageHtml}
+        <div class="related-body">
+          <div class="related-title">${escapeHtml(r.title)}</div>
+          <div class="related-source">${escapeHtml(r.source)}</div>
+        </div>
+      </a>
+    `
+  }
+
+  async function loadRelated() {
+    try {
+      const res = await fetch(`/api/related/${encodeURIComponent(recipeId)}`)
+      if (!res.ok) throw new Error('related failed')
+      const data = await res.json()
+
+      const sameBookSection = document.getElementById('related-same-book')
+      const sameBookResults = document.getElementById('same-book-results')
+      if (sameBookResults && data.same_book && data.same_book.length) {
+        sameBookResults.innerHTML = data.same_book.map(renderRelatedCard).join('')
+        sameBookSection.style.display = ''
+      }
+
+      const similarSection = document.getElementById('related-similar')
+      const similarResults = document.getElementById('similar-results')
+      if (similarResults && data.similar && data.similar.length) {
+        similarResults.innerHTML = data.similar.map(renderRelatedCard).join('')
+        similarSection.style.display = ''
+      }
+    } catch (err) {
+      console.error('[cookster] related error:', err)
+    }
+  }
+
+  // Servings scaler --------------------------------------------------------
+  const scaleInput = document.getElementById('scale-input')
+  const ingredientListEl = document.getElementById('ingredient-list')
+
+  const FRACTIONS = {
+    '\u00bc': 0.25, '\u00bd': 0.5, '\u00be': 0.75,
+    '\u2153': 1/3, '\u2154': 2/3, '\u215b': 1/8,
+    '\u215c': 3/8, '\u215d': 5/8, '\u215e': 7/8
+  }
+
+  function parseLeadingNumber(text) {
+    const fraction = text.split('').find(c => FRACTIONS[c])
+    if (fraction) {
+      const idx = text.indexOf(fraction)
+      const before = text.slice(0, idx).trim()
+      const after = text.slice(idx + 1).trim()
+      const wholeMatch = before.match(/(\d+)\s*$/)
+      const whole = wholeMatch ? parseInt(wholeMatch[1], 10) : 0
+      const val = whole + FRACTIONS[fraction]
+      const prefix = wholeMatch ? before.slice(0, wholeMatch.index) : before
+      return { val, prefix: prefix.trim(), suffix: after, raw: text.slice(0, idx + 1).trim() }
+    }
+    const m = text.match(/^(\d+(?:\.\d+)?)(?:\s*\/\s*(\d+))?\s*/)
+    if (!m) return null
+    let val = parseFloat(m[1])
+    if (m[2]) val /= parseInt(m[2], 10)
+    return { val, prefix: '', suffix: text.slice(m[0].length), raw: m[0].trim() }
+  }
+
+  function formatNumber(num) {
+    if (Math.abs(num - Math.round(num)) < 0.001) return String(Math.round(num))
+    const rounded = Math.round(num * 100) / 100
+    return String(rounded)
+  }
+
+  function scaleLine(line, factor) {
+    const parsed = parseLeadingNumber(line)
+    if (!parsed) return line
+    const scaled = parsed.val * factor
+    const newVal = formatNumber(scaled)
+    return (parsed.prefix + ' ' + newVal + ' ' + parsed.suffix).replace(/\s+/g, ' ').trim()
+  }
+
+  function applyScale() {
+    if (!ingredientListEl || !scaleInput) return
+    const factor = parseFloat(scaleInput.value) || 1
+    ingredientListEl.querySelectorAll('li').forEach(li => {
+      const original = li.dataset.original || li.textContent
+      if (!li.dataset.original) li.dataset.original = original
+      li.textContent = scaleLine(original, factor)
+    })
+  }
+
+  if (scaleInput) {
+    scaleInput.addEventListener('input', () => {
+      if (parseFloat(scaleInput.value) < 0.25) scaleInput.value = 0.25
+      applyScale()
+    })
+  }
+
+  // Cooking mode -----------------------------------------------------------
+  const startCookingBtn = document.getElementById('start-cooking')
+  const cookingOverlay = document.getElementById('cooking-overlay')
+  const cookingClose = document.getElementById('cooking-close')
+  const cookingPrev = document.getElementById('cooking-prev')
+  const cookingNext = document.getElementById('cooking-next')
+  const cookingStepText = document.getElementById('cooking-step-text')
+  const cookingStepNum = document.getElementById('cooking-step-num')
+  const cookingStepTotal = document.getElementById('cooking-step-total')
+
+  let cookingSteps = []
+  let cookingIndex = 0
+
+  function initCooking() {
+    if (!cookingOverlay) return
+    cookingSteps = Array.from(document.querySelectorAll('.step')).map(s => s.textContent.trim()).filter(Boolean)
+    cookingIndex = 0
+    if (!cookingSteps.length) return
+    cookingStepTotal.textContent = cookingSteps.length
+    renderCookingStep()
+    cookingOverlay.classList.add('open')
+    cookingOverlay.setAttribute('aria-hidden', 'false')
+    document.body.style.overflow = 'hidden'
+  }
+
+  function closeCooking() {
+    if (!cookingOverlay) return
+    cookingOverlay.classList.remove('open')
+    cookingOverlay.setAttribute('aria-hidden', 'true')
+    document.body.style.overflow = ''
+  }
+
+  function renderCookingStep() {
+    cookingStepNum.textContent = cookingIndex + 1
+    cookingStepText.textContent = cookingSteps[cookingIndex]
+    cookingPrev.disabled = cookingIndex === 0
+    cookingNext.textContent = cookingIndex === cookingSteps.length - 1 ? 'Done' : 'Next →'
+  }
+
+  if (startCookingBtn) startCookingBtn.addEventListener('click', initCooking)
+  if (cookingClose) cookingClose.addEventListener('click', closeCooking)
+  if (cookingPrev) cookingPrev.addEventListener('click', () => { if (cookingIndex > 0) { cookingIndex--; renderCookingStep() } })
+  if (cookingNext) cookingNext.addEventListener('click', () => { if (cookingIndex < cookingSteps.length - 1) { cookingIndex++; renderCookingStep() } else { closeCooking() } })
+  if (cookingOverlay) {
+    cookingOverlay.addEventListener('click', (e) => { if (e.target === cookingOverlay) closeCooking() })
+  }
+  document.addEventListener('keydown', (e) => {
+    if (!cookingOverlay || !cookingOverlay.classList.contains('open')) return
+    if (e.key === 'Escape') closeCooking()
+    if (e.key === 'ArrowRight') cookingNext.click()
+    if (e.key === 'ArrowLeft') cookingPrev.click()
+  })
+
+  // Copy link and export ---------------------------------------------------
+  const copyLinkBtn = document.getElementById('copy-link')
+  const exportMarkdownBtn = document.getElementById('export-markdown')
+  const pageUrl = location.href
+
+  if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pageUrl)
+        showToast('Recipe link copied')
+      } catch (e) {
+        showToast('Could not copy link')
+      }
+      if (navigator.share) {
+        navigator.share({ title: document.title, url: pageUrl }).catch(() => {})
+      }
+    })
+  }
+
+  if (exportMarkdownBtn) {
+    exportMarkdownBtn.addEventListener('click', () => {
+      const title = document.querySelector('.recipe-header h1').textContent.trim()
+      const source = getRecipeSource()
+      const ingredients = getIngredients()
+      const steps = Array.from(document.querySelectorAll('.step')).map(s => s.textContent.trim()).filter(Boolean)
+      let md = `# ${title}\n\n*From ${source}*\n\n## Ingredients\n\n`
+      md += ingredients.map(i => `- ${i}`).join('\n')
+      md += `\n\n## Method\n\n`
+      md += steps.map((s, i) => `${i + 1}. ${s}`).join('\n\n')
+      md += `\n\n[View in Cookster](${pageUrl})\n`
+      navigator.clipboard.writeText(md).catch(() => {})
+      const blob = new Blob([md], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${title.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}.md`
+      a.click()
+      URL.revokeObjectURL(url)
+      showToast('Markdown exported')
+    })
+  }
+
+  loadRelated()
+  updateFav()
+  renderRating()
+  renderCooked()
+})()

@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{ source_clean }} | Cookster</title>
+    <link rel="icon" type="image/jpeg" href="/static/cookster-logo.jpg">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container">
+      <header class="top">
+        <a class="brand" href="/">
+          <img src="/static/cookster-logo.jpg" alt="Cookster" class="logo-img">
+          <div>
+            <h1>Cook<span>ster</span></h1>
+            <p>Browse by book</p>
+          </div>
+        </a>
+        <div class="header-actions">
+          <button id="lists-toggle" class="theme-toggle" aria-label="My lists">📝 My Lists</button>
+          <button id="theme" class="theme-toggle" aria-label="Toggle theme">🌙 Dark</button>
+        </div>
+      </header>
+
+      <a class="back-link" href="/">← Back to search</a>
+
+      {% if error %}
+        <div class="panel">
+          <h2>Error</h2>
+          <p>{{ error }}</p>
+        </div>
+      {% else %}
+        <div class="hero" style="margin-bottom:18px">
+          <h2 class="hero-title">{{ source_clean }}</h2>
+          <p class="hero-subtitle" id="book-subtitle">Loading recipes…</p>
+        </div>
+
+        <div id="results" class="results-book"></div>
+        <div class="controls" id="book-controls" style="display:none">
+          <button id="prev" disabled>← Previous</button>
+          <span class="page-info"><span id="page">1</span> <span id="pages">of 1</span></span>
+          <button id="next" disabled>Next →</button>
+        </div>
+      {% endif %}
+    </div>
+
+    <aside id="lists-panel" class="lists-panel" aria-hidden="true">
+      <div class="lists-panel-header">
+        <h2>My Lists</h2>
+        <button id="lists-close" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="lists-panel-body">
+        <section class="list-section">
+          <div class="list-row favorite-row" data-list-id="__favorites__">
+            <span class="list-name">❤️ Favourites</span>
+            <span class="list-count" id="fav-count">0</span>
+          </div>
+        </section>
+        <section class="list-section custom-lists">
+          <h3>Custom lists</h3>
+          <div id="custom-lists"></div>
+          <form id="new-list-form" class="new-list-form">
+            <input type="text" id="new-list-name" placeholder="New list name" autocomplete="off" />
+            <button type="submit">Add</button>
+          </form>
+        </section>
+      </div>
+    </aside>
+    <div id="lists-backdrop" class="lists-backdrop"></div>
+
+    <script src="/static/lists.js" defer></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        (() => {
+          const sourceRaw = new URLSearchParams(location.search).get('source') || ''
+          const db = new URLSearchParams(location.search).get('db') || 'cookster.db'
+          const Lists = window.CooksterLists
+          const resultsEl = document.getElementById('results')
+          const subtitleEl = document.getElementById('book-subtitle')
+          const controls = document.getElementById('book-controls')
+          const prevBtn = document.getElementById('prev')
+          const nextBtn = document.getElementById('next')
+          const pageEl = document.getElementById('page')
+          const pagesEl = document.getElementById('pages')
+          const limit = 24
+          let page = 1
+          let total = 0
+
+          function escapeHtml(s) {
+            return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+          }
+
+          function heartIcon(filled) { return filled ? '♥' : '♡' }
+
+          function renderCard(r) {
+            const sid = r.stable_id || String(r.id)
+            const isFav = Lists.isFavorite(sid)
+            const imageHtml = r.image_url
+              ? `<div class="card-media"><img src="${r.image_url}" alt="" loading="lazy"></div>`
+              : `<div class="card-media"><div class="placeholder">📷 No image</div></div>`
+            return `
+              <article class="card">
+                ${imageHtml}
+                <div class="card-body">
+                  <div class="card-title-row">
+                    <h3><a href="/recipe/${sid}?db=${encodeURIComponent(db)}">${r.title}</a></h3>
+                    <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${sid}" aria-label="${isFav ? 'Remove from favourites' : 'Add to favourites'}">${heartIcon(isFav)}</button>
+                  </div>
+                </div>
+              </article>
+            `
+          }
+
+          async function load() {
+            try {
+              const res = await fetch(`/api/recipes-by-source?source=${encodeURIComponent(sourceRaw)}&db=${encodeURIComponent(db)}&page=${page}&limit=${limit}`)
+              if (!res.ok) throw new Error('Failed to load')
+              const data = await res.json()
+              total = data.total || 0
+              subtitleEl.textContent = `${total} recipe${total === 1 ? '' : 's'} in this book`
+              resultsEl.innerHTML = data.results.length ? data.results.map(renderCard).join('') : '<div class="empty"><h2>No recipes</h2></div>'
+              controls.style.display = total > limit ? '' : 'none'
+              const tp = Math.max(1, Math.ceil(total / limit))
+              pageEl.textContent = page
+              pagesEl.textContent = `of ${tp}`
+              prevBtn.disabled = page <= 1
+              nextBtn.disabled = page >= tp
+              resultsEl.querySelectorAll('.fav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                  const nowFav = Lists.toggleFavorite(btn.dataset.id)
+                  btn.classList.toggle('active', nowFav)
+                  btn.textContent = heartIcon(nowFav)
+                })
+              })
+              document.getElementById('fav-count').textContent = Lists.getFavorites().length
+            } catch (err) {
+              console.error(err)
+              subtitleEl.textContent = 'Error loading recipes.'
+            }
+          }
+
+          prevBtn.addEventListener('click', () => { if (page > 1) { page--; load() } })
+          nextBtn.addEventListener('click', () => { if (page * limit < total) { page++; load() } })
+
+          const listsPanel = document.getElementById('lists-panel')
+          const listsBackdrop = document.getElementById('lists-backdrop')
+          document.getElementById('lists-toggle').addEventListener('click', () => {
+            listsPanel.classList.add('open')
+            listsBackdrop.classList.add('open')
+          })
+          document.getElementById('lists-close').addEventListener('click', () => {
+            listsPanel.classList.remove('open')
+            listsBackdrop.classList.remove('open')
+          })
+          listsBackdrop.addEventListener('click', () => {
+            listsPanel.classList.remove('open')
+            listsBackdrop.classList.remove('open')
+          })
+
+          document.getElementById('theme').addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+            const next = isDark ? 'light' : 'dark'
+            document.documentElement.setAttribute('data-theme', next)
+            localStorage.setItem('theme', next)
+          })
+          const saved = localStorage.getItem('theme')
+          if (saved) document.documentElement.setAttribute('data-theme', saved)
+
+          load()
+        })()
+      })
+    </script>
+  </body>
+</html>

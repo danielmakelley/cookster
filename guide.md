@@ -1,0 +1,381 @@
+# Cookster Agent Guide
+
+This guide is for anyone (or any agent) picking up the Cookster project to fix bugs, add features, or refactor. It explains the architecture, key files, conventions, and how to make common changes safely.
+
+## What Cookster is
+
+Cookster is a local web app for searching EPUB and PDF cookbooks. It:
+
+1. Extracts recipes from books in `books/`.
+2. Stores them as JSON in `data/recipes/`.
+3. Loads them into a SQLite database (`cookster.db` by default).
+4. Serves a FastAPI backend and a vanilla-JS frontend.
+5. Lets users search by ingredient/recipe name, save favourites, create custom lists, build shopping lists and meal plans, and view/download recipes.
+
+All data lives locally. Favourites, lists, shopping, meal plans, notes and ratings are stored in the browser's `localStorage`.
+
+## Feature highlights
+
+- **Search**: full-text search with BM25 ranking, source filtering, and negative filters (`chicken -soup`).
+- **Browse by book**: click a book title on any recipe card to see every recipe from that book.
+- **Lists & favourites**: save recipes to Favourites or custom lists (Lists panel, 📝 My Lists).
+- **Shopping list**: add all ingredients from any recipe to a local shopping list (🛒 button).
+- **Meal planner**: plan recipes on specific dates from the recipe card or recipe page (📅 button).
+- **Recipe extras**: star ratings, personal notes, "I cooked this" history, serving scaler, and full-screen cooking mode.
+- **Share & export**: copy a stable link to any recipe or download it as Markdown.
+- **Backup/restore**: export/import all local data from the Backup tab.
+- **Incremental indexing**: the indexer skips unchanged books; a watcher can auto-index new EPUBs.
+
+## Tech stack
+
+- **Backend**: Python 3.11, FastAPI, SQLite (+ FTS5 when available), Jinja2 templates.
+- **Search ranking**: `rank-bm25` with title boosting + a small synonym map from `thesaurus.json`.
+- **EPUB parsing**: `ebooklib` + `BeautifulSoup` (`lxml`).
+- **PDF parsing**: `pypdf`.
+- **Frontend**: Vanilla JS, Jinja2 HTML templates, CSS with dark/light theme.
+- **Tests**: `pytest` with FastAPI's `TestClient`.
+- **Server**: `uvicorn` (development with `reload=True`).
+
+## Repository layout
+
+```
+.
+├── api.py                  # FastAPI app, endpoints, DB query helpers
+├── indexer.py              # EPUB/PDF extraction, JSON pipeline, DB loading
+├── ranking.py              # BM25 recipe ranking + synonyms
+├── search.py               # CLI search against a DB
+├── run_api.py              # Dev server entry point
+├── run_index.py            # CLI indexer entry point
+├── templates/
+│   ├── index.html          # Search page
+│   └── recipe.html         # Recipe detail page
+├── static/
+│   ├── style.css           # All UI styling
+│   ├── app.js              # Search page logic (pagination, lists, autocomplete, etc.)
+│   ├── recipe.js           # Recipe detail page logic (favourite, add-to-list, related recipes)
+│   └── lists.js            # localStorage favourites/lists module
+├── books/                  # Source EPUB/PDF files (not committed)
+├── data/recipes/           # Preprocessed JSON per book (not committed)
+├── static/epub_images/     # Extracted EPUB images (not committed)
+├── cookster.db             # SQLite database (not committed)
+├── tests/                  # pytest test suite
+│   └── test_api.py
+├── thesaurus.json          # Ingredient/locale synonym map
+└── requirements.txt        # Pinned Python dependencies
+```
+
+## How to get set up
+
+1. Create a virtual environment and install dependencies:
+
+```bash
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+2. Run tests to confirm everything works:
+
+```bash
+python -m pytest tests/ -q
+```
+
+3. (Optional) Put EPUB/PDF files in `books/` and build the index:
+
+```bash
+python run_index.py --books-dir books --db cookster.db
+```
+
+4. Run the web server:
+
+```bash
+python run_api.py
+# Open http://127.0.0.1:8000
+```
+
+## Architecture
+
+```
+books/  ──►  indexer.py  ──►  data/recipes/*.json
+                                  │
+                                  ▼
+                    index_preprocessed_dir  ──►  cookster.db
+                                  │
+                                  ▼
+        FastAPI (api.py)  ◄──  ranking.py (BM25)
+              │
+              ▼
+    Jinja2 templates + static/ JS/CSS
+```
+
+### Backend flow
+
+- `indexer.py` walks `books/`, extracts recipes, and writes one JSON file per book to `data/recipes/`.
+- `indexer.index_preprocessed_dir()` creates/recreates the SQLite DB, loads the JSON recipes, and populates an optional FTS5 table.
+- `api.py` exposes endpoints. Search uses FTS5 to find candidate IDs when available, then ranks with `ranking.py`.
+- Recipe detail pages and downloads are served directly from the DB.
+
+### Frontend flow
+
+- `index.html` loads `lists.js`, then `app.js`.
+- `app.js` handles search, pagination, source filtering, autocomplete, favourites, lists, and URL state.
+- `recipe.html` loads `lists.js`, then `recipe.js`.
+- `recipe.js` handles the favourite button, add-to-list dropdown, and related recipes.
+- `lists.js` owns all `localStorage` state for favourites and custom lists.
+
+## Key concepts and gotchas
+
+### Stable IDs (very important)
+
+Recipes have a **stable_id**: a truncated SHA-256 hash of `title + source + ingredients + steps`. This survives DB re-indexing so that favourites and lists don't break when the DB is rebuilt.
+
+- The DB has an `INTEGER PRIMARY KEY` `id` column (auto-increment) and a `stable_id TEXT` column with a unique index.
+- API endpoints accept **either** an integer ID or a `stable_id` in URL paths like `/recipe/{id}` and `/download/{id}`.
+- Frontend links and `localStorage` keys use `stable_id`.
+- `_ensure_schema()` in `api.py` adds the `stable_id` column if missing and backfills `NULL` values on first API access.
+- When re-indexing, `indexer.py` computes the same `stable_id` algorithm as `api.compute_stable_id()`.
+
+**Rule**: when adding a new feature that identifies a recipe, use `stable_id`. Never use integer `id` for long-lived references (URLs, localStorage, bookmarks).
+
+### LocalStorage lists
+
+- Storage key: `cookster_lists_v2`.
+- Schema: `{ favorites: [stable_id, ...], lists: [{id, name, recipes: [stable_id, ...]}] }`.
+- `lists.js` emits a `cookster-lists-changed` event when state changes.
+- UI components listen for that event and re-render.
+
+### Security model
+
+- The `db` query parameter is sandboxed: paths must resolve inside `api.DB_DIR` (project root by default). `..` and absolute paths outside the project are rejected.
+- `/download/{id}` resolves the stored `file_path` against `api.BOOKS_DIR` (which is `books/`). Downloads outside `books/` are rejected.
+- Tests monkeypatch `api.DB_DIR` and `api.BOOKS_DIR` to temp directories so they can still test.
+
+### FTS5 fallback
+
+- If the `recipes_fts` virtual table exists, search pre-filters candidates with it.
+- If not, the API falls back to a full-table scan and filters results by whether query tokens actually appear in the candidate text.
+- Query text is sanitized before FTS5 `MATCH` to avoid syntax errors from special characters.
+
+### Image handling
+
+- EPUB images are extracted to `static/epub_images/` and served as static files.
+- PDFs currently have no images extracted.
+- The DB stores an `image` column with a relative path; `_image_path_to_url()` converts it to a `/static/...` URL.
+- `_find_image_for_doc()` tries the recipe's own document and then up to three neighbouring image-only EPUB documents in both directions.
+- `preprocess_dir()` removes stale image directories when a book is deleted or renamed.
+
+## Common changes
+
+### Add a new API endpoint
+
+1. Add the route in `api.py`.
+2. Use `resolve_db_path(db)` for DB access.
+3. Use `_ensure_schema(conn)` if you need the `stable_id` column to exist.
+4. Handle DBs without the `image` column with a `try/except sqlite3.OperationalError` pattern.
+5. Add a test in `tests/test_api.py` and set `api.DB_DIR` to the temp directory.
+6. Run `python -m pytest tests/ -q`.
+
+### Add a frontend feature on the search page
+
+1. Add the markup in `templates/index.html`.
+2. Add logic in `static/app.js`.
+3. Add styles in `static/style.css`.
+4. Keep URL state in `syncUrl()` so back/forward/refresh work.
+5. Run tests and do a manual browser check.
+
+### Add a frontend feature on the recipe page
+
+1. Add markup in `templates/recipe.html`.
+2. Add logic in `static/recipe.js`.
+3. Add styles in `static/style.css`.
+4. Remember `recipe.stable_id` is available in the template.
+
+### Add a new book-specific extractor
+
+`indexer.py` uses a small pluggable extractor registry (`_EXTRACTORS`) instead of a long `if/elif` chain. Existing book-specific extractor cores include:
+
+- `_extract_30min_meals`
+- `_extract_every_grain_recipes`
+- `_extract_one_pan_wonders_recipes`
+- `_extract_gordon_ramsay_recipes`
+- `_extract_simply_japanese_recipes`
+- `_extract_plenty_more_recipes`
+- `_extract_flavour_recipes`
+- `_extract_plenty_recipes`
+- `_extract_veganomicon_recipes`
+- `_extract_french_provincial_recipes`
+- `_extract_delias_cakes_recipes`
+- `_extract_good_things_recipes`
+- `_extract_everyday_super_food_recipes`
+- `_extract_jamie_veg_recipes`
+- `_extract_seven_fires_recipes`
+- `_extract_cocolat_recipes`
+- `_extract_kitchen_diaries_recipes`
+- `_extract_nigella_how_to_eat_recipes`
+- `_extract_nigella_domestic_goddess_recipes`
+
+1. Write an extractor function. It should accept `(soup, epub_path)` and return a list of dicts with keys `title`, `ingredients`, `steps`, `source`, `file_path`, and optionally `serves`:
+
+   ```python
+   def _extract_my_book(soup: BeautifulSoup, epub_path: str) -> List[Dict]:
+       ...
+       return [{
+           'title': title,
+           'ingredients': ingredients,
+           'steps': steps,
+           'source': os.path.basename(epub_path),
+           'file_path': epub_path,
+           'image': '',
+           'serves': serves,
+       }]
+   ```
+
+2. Add a `_with_image` wrapper near the other wrappers (the dispatcher calls extractors with `(soup, epub_path, image_path)`):
+
+   ```python
+   def _extract_my_book_with_image(soup: BeautifulSoup, epub_path: str, image_path: str = '') -> List[Dict]:
+       recipes = _extract_my_book(soup, epub_path)
+       for r in recipes:
+           r['image'] = image_path
+       return recipes
+   ```
+
+3. Register it near the bottom of `indexer.py` (order matters — the first extractor whose predicate returns `True` and returns non-empty recipes wins). Book-specific extractors should be registered **before** the generic `paragraph`/`heading`/`fallback` extractors:
+
+   ```python
+   register_extractor(
+       _source_predicate('my book'),  # filename substring, or write a custom predicate
+       _extract_my_book_with_image,
+       'my book',
+   )
+   ```
+
+   For content-based matching, use a custom predicate:
+
+   ```python
+   def _my_book_predicate(soup: BeautifulSoup, epub_path: str) -> bool:
+       return bool(soup.select_one('.my-book-marker'))
+
+   register_extractor(_my_book_predicate, _extract_my_book_with_image, 'my book')
+   ```
+
+4. The dispatcher adds the extracted recipe image automatically, so you don't need to set `image` yourself inside the extractor.
+5. Re-run `python run_index.py --force` to rebuild the index with the new extractor.
+6. Verify recipe counts/images in the UI.
+
+**Important**: once a book-specific extractor's predicate matches a file, later generic extractors (`paragraph`, `heading`, `fallback`) are **not** run for that file. This prevents generic extractors from inserting garbage into books that have a dedicated extractor. Make sure the book-specific extractor handles every file for that book (returning an empty list for non-recipe pages like front matter, indices, etc.) or accept that those files will contribute no recipes.
+
+### How image extraction works
+
+- `_save_epub_images()` extracts every image from the EPUB to `static/epub_images/<slug_hash>/`.
+- For each recipe document, `_find_image_for_doc()` first looks for `<img>` tags inside the document itself, then scans up to three preceding and three following short (≤80 characters of text) EPUB documents for image-only interleaving pages.
+- `preprocess_dir()` removes orphaned image directories when their source book is deleted or renamed, so `static/epub_images/` doesn't accumulate stale files.
+
+### Improve search ranking
+
+- Edit `ranking.py` for tokenization, stopwords, or synonym handling.
+- Add entries to `thesaurus.json` for ingredient aliases (e.g., `aubergine -> eggplant`).
+- `rank_recipes()` returns `[]` for empty candidate lists.
+
+### Re-index from scratch
+
+```bash
+python run_index.py --books-dir books --db cookster.db --force
+```
+
+`--force` re-parses every EPUB and re-loads every book. Without `--force`, `run_index.py` is incremental:
+- `preprocess_dir()` only re-parses a book if its JSON file is missing or older than the source EPUB.
+- `index_preprocessed_dir()` only re-loads books whose JSON file has changed; unchanged books are skipped, and books that have been deleted are removed from the DB.
+
+Stable IDs mean user favourites/lists will still point to the right recipes after a re-index.
+
+### Watch the books folder for changes
+
+`watch_books.py` polls the books directory and re-runs the incremental indexer whenever a file is added, removed, or changed.
+
+```bash
+# Run once and exit
+python watch_books.py --once
+
+# Poll every 10 seconds (default)
+python watch_books.py
+
+# Custom paths
+python watch_books.py --books-dir books --recipes-dir data/recipes --db cookster.db --interval 30
+```
+
+Stop it with `Ctrl+C`. It is safe to run alongside `python run_api.py` because the database uses WAL mode.
+
+### Trigger indexing from the web UI or another script
+
+The API exposes background indexing endpoints. They run in a daemon thread so the site keeps serving requests.
+
+- `GET /api/index/status` – current indexer state (`idle`/`running`/`complete`/`error`).
+- `POST /api/index/start` – start a background re-index. Returns `409` if an index is already running.
+- `GET /api/index/start` – convenience GET wrapper.
+
+Examples:
+
+```bash
+# Check status
+curl http://127.0.0.1:8000/api/index/status
+
+# Start an incremental re-index
+curl -X POST http://127.0.0.1:8000/api/index/start
+
+# Force a full rebuild
+curl -X POST "http://127.0.0.1:8000/api/index/start?force=true"
+```
+
+You can also call `indexer.index_preprocessed_dir(recipes_dir, db_path, force=False)` directly from Python when you only need to reload existing JSON files.
+
+## Testing
+
+```bash
+# Run the full suite
+python -m pytest tests/ -q
+
+# Run a specific test
+python -m pytest tests/test_api.py::test_search_endpoint -q
+```
+
+Tests create temp DBs and monkeypatch `api.DB_DIR`/`api.BOOKS_DIR` so they don't touch the real `cookster.db` or `books/`.
+
+## CI/CD
+
+`.github/workflows/python-app.yml` runs on `push`/`pull_request` to `main` or `master`:
+
+1. Sets up Python 3.11.
+2. Installs `requirements.txt`.
+3. Runs `pytest -q`.
+
+## Conventions
+
+- Keep backend logic in `api.py` / `indexer.py` / `ranking.py`. Avoid adding business logic to templates.
+- Frontend uses vanilla JS modules attached to `window` (e.g., `window.CooksterLists`).
+- Use `escapeHtml()` before injecting user-facing strings into HTML.
+- CSS uses CSS variables for theming; both light and dark modes must be considered.
+- Don't commit generated files (`cookster.db`, `data/recipes/`, `static/epub_images/`, `__pycache__`, etc.). They are in `.gitignore`.
+
+## Troubleshooting
+
+- **Search returns 0 results unexpectedly**: Check whether the DB has the `recipes_fts` table. Without it, the fallback requires query tokens to actually appear in the recipe text.
+- **Favourites/lists disappear after re-index**: Ensure `stable_id` was populated and the localStorage key is `cookster_lists_v2`. Old integer-based lists were abandoned intentionally.
+- **Images not showing**: Check that `static/epub_images/` exists and the DB `image` column contains a relative path that `_image_path_to_url()` can convert.
+- **Download fails with 400**: The stored `file_path` must resolve inside `books/`. If you moved books, re-index so paths are updated.
+
+## Useful one-liners
+
+```bash
+# Quick API smoke test
+python -c "from api import app; print('ok')"
+
+# Count recipes in the local DB
+python -c "import sqlite3; print(sqlite3.connect('cookster.db').execute('SELECT COUNT(*) FROM recipes').fetchone()[0])"
+
+# List indexed books
+python -c "import sqlite3; import api; [print(api._clean_source(r[0])) for r in sqlite3.connect('cookster.db').execute('SELECT DISTINCT source FROM recipes') if r[0]]"
+```
