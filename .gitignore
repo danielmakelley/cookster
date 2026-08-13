@@ -28,9 +28,9 @@ htmlcov/
 Thumbs.db
 
 # Project generated files
-*.db
-*.db-wal
-*.db-shm
+cookster.db-wal
+cookster.db-shm
+tmp*.db
 data/recipes/
 static/epub_images/
 static/cookster-logo.jpg
